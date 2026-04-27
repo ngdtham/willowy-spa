@@ -173,8 +173,6 @@ function handleRegister(payload) {
         try {
           const refSheet = getSheet(CONFIG.SHEETS.REFERRALS);
           appendRow(refSheet, getHeaders(refSheet), { referralId: generateId('REF'), referrerId: referrer.customerId, referredId: customerId, qrCode: referralCode, scannedAt: now, registeredAt: now, status: 'registered' });
-          const ri = customers.findIndex(c => c.customerId === referrer.customerId);
-          if (ri !== -1) { customers[ri].referralCount = (parseInt(customers[ri].referralCount)||0)+1; updateRow(sheet, ri, headers, customers[ri]); }
         } catch(e) {}
       }
     }
@@ -271,7 +269,25 @@ function handleCreateBooking(payload) {
     const bookingId = generateId('BKG');
     const booking = { bookingId, customerId, serviceId, technicianId, bookingDate, startTime, endTime, status:'confirmed', note: note||'', createdAt: new Date().toISOString() };
     appendRow(bSheet, getHeaders(bSheet), booking);
-    try { const cs=getSheet(CONFIG.SHEETS.CUSTOMERS); const ca=sheetToObjects(cs); const ch=getHeaders(cs); const ci=ca.findIndex(c=>c.customerId===customerId); if(ci!==-1){ca[ci].totalVisits=(parseInt(ca[ci].totalVisits)||0)+1;updateRow(cs,ci,ch,ca[ci]);} } catch(e) {}
+    // Update referral count for referrer if this is the customer's first SUCCESSFUL booking
+    try {
+      const bSheet = getSheet(CONFIG.SHEETS.BOOKINGS);
+      const customerBookings = sheetToObjects(bSheet).filter(b => b.customerId === customerId && (b.status === 'confirmed'));
+      if (customerBookings.length === 1) { // This is their first confirmed booking
+        const cSheet = getSheet(CONFIG.SHEETS.CUSTOMERS);
+        const customers = sheetToObjects(cSheet);
+        const customer = customers.find(c => c.customerId === customerId);
+        if (customer && customer.referredBy) {
+          const rIdx = customers.findIndex(c => c.customerId === customer.referredBy);
+          if (rIdx !== -1) {
+            const headers = getHeaders(cSheet);
+            customers[rIdx].referralCount = (parseInt(customers[rIdx].referralCount) || 0) + 1;
+            updateRow(cSheet, rIdx, headers, customers[rIdx]);
+          }
+        }
+      }
+      const cs=getSheet(CONFIG.SHEETS.CUSTOMERS); const ca=sheetToObjects(cs); const ch=getHeaders(cs); const ci=ca.findIndex(c=>c.customerId===customerId); if(ci!==-1){ca[ci].totalVisits=(parseInt(ca[ci].totalVisits)||0)+1;updateRow(cs,ci,ch,ca[ci]);}
+    } catch(e) {}
     // Auto-create schedule entry if one doesn't exist for this tech+date
     try {
       const schSheet = getSheet(CONFIG.SHEETS.SCHEDULES);

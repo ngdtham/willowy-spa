@@ -223,8 +223,8 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 .admin-subtitle{font-size:12px;color:var(--sub);margin-top:2px}
 
 /* Admin table */
-.admin-table-wrap{background:#fff;border-radius:var(--r2);border:1px solid var(--stone);overflow:hidden;box-shadow:var(--sh)}
-.admin-table{width:100%;border-collapse:collapse}
+.admin-table-wrap{background:#fff;border-radius:var(--r2);border:1px solid var(--stone);overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:var(--sh)}
+.admin-table{width:100%;border-collapse:collapse;min-width:700px}
 .admin-table th{background:#f9f6f2;padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--stone)}
 .admin-table td{padding:12px 14px;border-bottom:1px solid #f5f0ea;font-size:12px;color:var(--deep);vertical-align:middle}
 .admin-table tr:last-child td{border:none}
@@ -271,9 +271,10 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
   .hero{padding:36px 16px 28px}
   .section,.container{padding:16px}
   .admin-dashboard{flex-direction:column}
-  .admin-sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:10px;border-right:none;border-bottom:1px solid var(--stone);white-space:nowrap;gap:12px;position:sticky;top:var(--nav-h);z-index:90;background:var(--deep)}
-  .admin-nav-item{padding:6px 12px;font-size:13px;border-left:none;border-bottom:3px solid transparent}
-  .admin-nav-item.active{border-left-color:transparent;border-bottom-color:var(--gold)}
+  .admin-sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:8px;border-right:none;border-bottom:1px solid var(--stone);white-space:nowrap;gap:8px;position:sticky;top:var(--nav-h);z-index:90;background:var(--deep)}
+  .admin-nav-item{padding:8px 14px;font-size:12px;border-left:none;border-bottom:3px solid transparent;flex-direction:column;gap:4px;min-width:80px}
+  .admin-nav-item svg{width:18px;height:18px}
+  .admin-nav-item.active{border-left-color:transparent;border-bottom-color:var(--gold);background:rgba(255,255,255,.05)}
   .admin-sidebar-logo{display:none}
 }
 @media(min-width:641px){
@@ -395,6 +396,9 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
   <div class="container">
     <div class="card" id="profileCard"></div>
     <div class="card" style="margin-top:14px" id="referralCard"></div>
+    <div style="margin-top:20px;padding:0 10px">
+      <button class="btn btn-outline btn-block" onclick="logout()" style="color:#e57373;border-color:#e57373" id="btnProfLogout"></button>
+    </div>
   </div>
 </div>
 
@@ -600,6 +604,7 @@ const I18N = {
     successLogin:'Đăng nhập thành công!',successRegister:'Tạo tài khoản thành công!',
     successBooking:'Đặt lịch thành công! 🎉',successCancel:'Đã hủy lịch',
     needLogin:'Vui lòng đăng nhập để đặt lịch',noSlot:'Không có giờ trống cho ngày này',copyCode:'Đã sao chép mã!',
+    logout:'Đăng xuất'
   },
   en:{
     heroSub:'Relax & Recharge',heroTitle:'Your moment of<br><em>serenity</em>',
@@ -630,6 +635,7 @@ const I18N = {
     successLogin:'Signed in!',successRegister:'Account created!',
     successBooking:'Booking confirmed! 🎉',successCancel:'Booking cancelled',
     needLogin:'Please sign in to book',noSlot:'No slots available for this date',copyCode:'Copied!',
+    logout:'Logout'
   }
 };
 
@@ -784,7 +790,7 @@ async function doRegister(){
   const phone=document.getElementById('regPhone').value.trim();
   const email=document.getElementById('regEmail').value.trim();
   const password=document.getElementById('regPwd').value;
-  const referralCode=document.getElementById('regRef').value.trim();
+  const referralCode=document.getElementById('regRef').value.trim() || localStorage.getItem('willowyRef') || '';
   if(!name){showToast(t('errName'),'error');return;}
   if(!phone){showToast(t('errPhone'),'error');return;}
   if(password.length<6){showToast(t('errPwd6'),'error');return;}
@@ -1012,13 +1018,14 @@ async function renderProfile(){
     rc.innerHTML=`<div class="qr-wrap">
       <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">${t('referralTitle')}</h3>
       <p style="color:var(--sub);font-size:12px;margin-bottom:18px">${t('referralDesc')}</p>
-      <div class="qr-box">${generateQRSVG(qrUrl)}</div>
+      <div class="qr-box"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrUrl)}" alt="QR Code" width="144" height="144" style="border-radius:10px"/></div>
       <div class="qr-code-text" onclick="copyRef('${res.referralCode}')">${res.referralCode}</div>
       <p style="font-size:11px;color:var(--sub);margin-top:4px">Nhấn để sao chép</p>
       <div class="stat-chips"><div class="stat-chip"><div class="val">${res.referralCount}</div><div class="lbl">${t('referralCount')}</div></div></div>
     </div>
-    <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--stone);text-align:center">
-      <button class="btn btn-outline btn-sm" onclick="showPage('admin')" style="opacity:0.6">🔐 Quản lý hệ thống (Admin)</button>
+    <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--stone);display:flex;flex-direction:column;gap:10px;align-items:center">
+      <button class="btn btn-outline btn-sm" onclick="showPage('admin')" style="opacity:0.6;width:100%;max-width:300px">🔐 Quản lý hệ thống (Admin)</button>
+      <button class="btn btn-danger btn-sm" onclick="logout()" style="width:100%;max-width:300px">🚪 Đăng xuất</button>
     </div>`;
   }
 }
@@ -1026,16 +1033,8 @@ async function renderProfile(){
 function copyRef(code){navigator.clipboard.writeText(code).then(()=>showToast(t('copyCode'),'success'));}
 
 function generateQRSVG(text){
-  const size=21,cell=Math.floor(144/size);let cells='',hash=0;
-  for(let i=0;i<text.length;i++){hash=((hash<<5)-hash)+text.charCodeAt(i);hash=hash&hash;}
-  const rng=s=>{s=Math.sin(s+hash)*10000;return s-Math.floor(s);};
-  const finder=(ox,oy)=>{for(let r=0;r<7;r++)for(let c=0;c<7;c++){const iB=r===0||r===6||c===0||c===6,iI=r>=2&&r<=4&&c>=2&&c<=4;if(iB||iI)cells+=`<rect x="${(ox+c)*cell}" y="${(oy+r)*cell}" width="${cell}" height="${cell}" fill="var(--deep)"/>`;}};
-  finder(0,0);finder(size-7,0);finder(0,size-7);
-  for(let r=0;r<size;r++)for(let c=0;c<size;c++){
-    if((r<8&&c<8)||(r<8&&c>=size-8)||(r>=size-8&&c<8))continue;
-    if(rng(r*size+c)>0.55)cells+=`<rect x="${c*cell}" y="${r*cell}" width="${cell-1}" height="${cell-1}" fill="var(--deep)" rx="1"/>`;
-  }
-  return`<svg viewBox="0 0 ${size*cell} ${size*cell}" xmlns="http://www.w3.org/2000/svg" class="qr-svg">${cells}</svg>`;
+  // Deprecated - Replaced by real QR API
+  return '';
 }
 
 // ── ADMIN ─────────────────────────────────────────────────────
@@ -1350,10 +1349,20 @@ function init(){
 
   const ref = getParam('ref');
   if(ref){
-    const el=document.getElementById('regRef');if(el)el.value=ref;
+    localStorage.setItem('willowy_ref', ref);
     api('trackQRScan',{referralCode:ref});
-    switchAuthTab('register');showPage('auth');
+    // Redirect to home without query params for clean URL
+    if (window.history.replaceState) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
   }
+  
+  // Prefill referral code if exists
+  const savedRef = localStorage.getItem('willowy_ref');
+  if(savedRef){
+    const el=document.getElementById('regRef');if(el)el.value=savedRef;
+  }
+
   // Admin shortcut ?admin=1
   if(getParam('admin')==='1'){showPage('admin');return;}
 
