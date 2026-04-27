@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
-<title>Willowy Spa - V2</title>
+<title>Willowy Spa</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet"/>
 <style>
 :root{
@@ -180,6 +180,8 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 .loading-overlay{display:none;position:fixed;inset:0;background:rgba(250,247,242,.82);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:10px}
 .loading-overlay.show{display:flex}
 .loading-overlay p{color:var(--sub);font-size:13px}
+.pwd-wrap{position:relative}
+.pwd-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--sub);font-size:16px;user-select:none}
 
 /* ── BOTTOM NAV ─── */
 .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:58px;background:rgba(250,247,242,.96);backdrop-filter:blur(12px);border-top:1px solid var(--stone);z-index:100;padding:0 6px}
@@ -326,14 +328,14 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
       </div>
       <div id="loginForm">
         <div class="form-group"><label class="form-label" id="lbPhone"></label><input class="form-control" id="loginPhone" type="tel" placeholder="0901234567"/></div>
-        <div class="form-group"><label class="form-label" id="lbPwd"></label><input class="form-control" id="loginPwd" type="password" placeholder="••••••••"/></div>
+        <div class="form-group"><label class="form-label" id="lbPwd"></label><div class="pwd-wrap"><input class="form-control" id="loginPwd" type="password" placeholder="••••••••"/><span class="pwd-toggle" onclick="togglePwd('loginPwd')">👁️</span></div></div>
         <button class="btn btn-primary btn-block" onclick="doLogin()" id="btnLogin"></button>
       </div>
       <div id="registerForm" style="display:none">
         <div class="form-group"><label class="form-label" id="lbName"></label><input class="form-control" id="regName" type="text" placeholder="Nguyễn Văn A"/></div>
         <div class="form-group"><label class="form-label" id="lbPhoneR"></label><input class="form-control" id="regPhone" type="tel" placeholder="0901234567"/></div>
         <div class="form-group"><label class="form-label" id="lbEmail"></label><input class="form-control" id="regEmail" type="email" placeholder="email@example.com"/></div>
-        <div class="form-group"><label class="form-label" id="lbPwdR"></label><input class="form-control" id="regPwd" type="password" placeholder="Tối thiểu 6 ký tự"/></div>
+        <div class="form-group"><label class="form-label" id="lbPwdR"></label><div class="pwd-wrap"><input class="form-control" id="regPwd" type="password" placeholder="Tối thiểu 6 ký tự"/><span class="pwd-toggle" onclick="togglePwd('regPwd')">👁️</span></div></div>
         <div class="form-group"><label class="form-label" id="lbRef"></label><input class="form-control" id="regRef" type="text" placeholder="REF_XXXXX (nếu có)"/></div>
         <button class="btn btn-primary btn-block" onclick="doRegister()" id="btnRegister"></button>
       </div>
@@ -882,7 +884,6 @@ function goStep(n){
   renderStepIndicator();
   if(n===4)renderSummary();
   if(n===3){
-    showToast("Đang tự động kiểm tra lịch trống...");
     const container=document.getElementById('slotsContainer');
     if(container) container.innerHTML='<div class="spinner"></div>';
     setTimeout(() => {
@@ -900,6 +901,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(di){
     const today=new Date().toISOString().split('T')[0];
     di.min=today;di.value=today;
+    state.booking.date=today; // Gán mặc định vào state
     di.addEventListener('change',async()=>{
       state.booking.date=di.value;state.booking.startTime=null;
       const bn=document.getElementById('btnNext3');if(bn)bn.disabled=true;
@@ -1354,17 +1356,19 @@ document.querySelectorAll('.modal-bg').forEach(bg=>{
 
 // ── INIT ──────────────────────────────────────────────────────
 function init(){
-  // Google Apps Script iframe blocks window.location.search,
-  // so params are injected by doGet() as window.__URL_PARAMS__
-  const params = window.__URL_PARAMS__ || {};
-  const ref = params.ref || '';
+  // Support both: Vercel (window.location.search) and GAS iframe (__URL_PARAMS__)
+  const urlParams = new URLSearchParams(window.location.search);
+  const gasParams = window.__URL_PARAMS__ || {};
+  const getParam = k => urlParams.get(k) || gasParams[k] || '';
+
+  const ref = getParam('ref');
   if(ref){
     const el=document.getElementById('regRef');if(el)el.value=ref;
     api('trackQRScan',{referralCode:ref});
     switchAuthTab('register');showPage('auth');
   }
   // Admin shortcut ?admin=1
-  if(params.admin==='1'){showPage('admin');return;}
+  if(getParam('admin')==='1'){showPage('admin');return;}
 
   const saved=localStorage.getItem('willowyCustomer');
   if(saved){try{state.customer=JSON.parse(saved);}catch(e){}}
@@ -1373,6 +1377,7 @@ function init(){
   showPage('home');
 }
 
+function togglePwd(id){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}
 window.addEventListener('DOMContentLoaded',init);
 </script>
 </body>
