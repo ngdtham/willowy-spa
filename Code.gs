@@ -253,27 +253,78 @@ function generateTimeSlots(startTime, endTime, duration, bookings, date) {
 
 function handleCreateBooking(payload) {
   try {
-    const { customerId, serviceId, technicianId, bookingDate, startTime, note } = payload;
-    if (!customerId||!serviceId||!technicianId||!bookingDate||!startTime) return { success: false, error: 'missing_fields' };
+    const { customerId, serviceId, technicianId, note, isRecurring, bookingDate, startTime, startDate, endDate, daysOfWeek } = payload;
+    if (!customerId||!serviceId||!technicianId) return { success: false, error: 'missing_fields' };
+    
+    let datesToBook = [];
+    let stTime = startTime;
+    if (isRecurring) {
+      if (!startDate || !endDate || !daysOfWeek || !daysOfWeek.length || !startTime) return { success: false, error: 'missing_fields' };
+      stTime = startTime;
+      let curr = new Date(startDate);
+      let end = new Date(endDate);
+      let maxDays = 180; // Giới hạn 6 tháng
+      while (curr <= end && maxDays > 0) {
+        if (daysOfWeek.includes(curr.getDay())) {
+          datesToBook.push(curr.toISOString().split('T')[0]);
+        }
+        curr.setDate(curr.getDate() + 1);
+        maxDays--;
+      }
+    } else {
+      if (!bookingDate || !startTime) return { success: false, error: 'missing_fields' };
+      datesToBook.push(bookingDate);
+    }
+    
+    if (datesToBook.length === 0) return { success: false, error: 'no_valid_dates' };
+
     const services = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES));
     const svc = services.find(s => s.serviceId === serviceId);
     if (!svc) return { success: false, error: 'service_not_found' };
     const duration = parseInt(svc.duration)||60;
-    const em2 = timeToMinutes(startTime) + duration;
+    const em2 = timeToMinutes(stTime) + duration;
     const endTime = String(Math.floor(em2/60)).padStart(2,'0')+':'+String(em2%60).padStart(2,'0');
-    if (new Date(bookingDate+'T'+startTime+':00') <= new Date()) return { success: false, error: 'past_time' };
+    
     const bSheet = getSheet(CONFIG.SHEETS.BOOKINGS);
-    const existing = sheetToObjects(bSheet).filter(b => String(b.technicianId).trim()===technicianId && normalizeDate(b.bookingDate)===bookingDate && (b.status==='confirmed'||b.status==='pending'));
-    const sMin=timeToMinutes(startTime), eMin=timeToMinutes(endTime);
-    if (existing.some(b=>{ const bs=timeToMinutes(normalizeTime(b.startTime)),be=timeToMinutes(normalizeTime(b.endTime)); return !(eMin<=bs||sMin>=be); })) return { success: false, error: 'slot_taken' };
-    const bookingId = generateId('BKG');
-    const booking = { bookingId, customerId, serviceId, technicianId, bookingDate, startTime, endTime, status:'confirmed', note: note||'', createdAt: new Date().toISOString() };
-    appendRow(bSheet, getHeaders(bSheet), booking);
-    // Update referral count for referrer if this is the customer's first SUCCESSFUL booking
+    const existingBookings = sheetToObjects(bSheet).filter(b => b.status === 'confirmed' || b.status === 'pending');
+    const sMin=timeToMinutes(stTime), eMin=timeToMinutes(endTime);
+    
+    let successfulBookings = [];
+    let skippedDates = [];
+    const now = new Date();
+    const schSheet = getSheet(CONFIG.SHEETS.SCHEDULES);
+    const existingSchedules = sheetToObjects(schSheet);
+    
+    for (let d of datesToBook) {
+      if (new Date(d+'T'+stTime+':00') <= now) { skippedDates.push(d); continue; }
+      const existingForDay = existingBookings.filter(b => String(b.technicianId).trim()===technicianId && normalizeDate(b.bookingDate)===d);
+      if (existingForDay.some(b=>{ const bs=timeToMinutes(normalizeTime(b.startTime)),be=timeToMinutes(normalizeTime(b.endTime)); return !(eMin<=bs||sMin>=be); })) {
+        skippedDates.push(d); continue;
+      }
+      
+      const bookingId = generateId('BKG');
+      const booking = { bookingId, customerId, serviceId, technicianId, bookingDate: d, startTime: stTime, endTime, status:'confirmed', note: note||'', createdAt: new Date().toISOString() };
+      appendRow(bSheet, getHeaders(bSheet), booking);
+      existingBookings.push(booking);
+      successfulBookings.push(booking);
+      
+      // Auto-create schedule entry
+      try {
+        const existingSch = existingSchedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === d);
+        if (!existingSch) {
+          const newSch = { scheduleId: generateId('SCH'), technicianId: technicianId, date: d, startTime: '08:00', endTime: '22:00', isActive: true };
+          appendRow(schSheet, getHeaders(schSheet), newSch);
+          existingSchedules.push(newSch);
+        }
+      } catch(e) {}
+    }
+    
+    if (successfulBookings.length === 0) return { success: false, error: 'slot_taken' };
+
+    // Cập nhật referral và totalVisits
     try {
-      const bSheet = getSheet(CONFIG.SHEETS.BOOKINGS);
-      const customerBookings = sheetToObjects(bSheet).filter(b => b.customerId === customerId && (b.status === 'confirmed'));
-      if (customerBookings.length === 1) { // This is their first confirmed booking
+      const cBookings = existingBookings.filter(b => b.customerId === customerId && b.status === 'confirmed');
+      if (cBookings.length === successfulBookings.length) { // Nếu đây là những booking đầu tiên
         const cSheet = getSheet(CONFIG.SHEETS.CUSTOMERS);
         const customers = sheetToObjects(cSheet);
         const customer = customers.find(c => c.customerId === customerId);
@@ -286,20 +337,12 @@ function handleCreateBooking(payload) {
           }
         }
       }
-      const cs=getSheet(CONFIG.SHEETS.CUSTOMERS); const ca=sheetToObjects(cs); const ch=getHeaders(cs); const ci=ca.findIndex(c=>c.customerId===customerId); if(ci!==-1){ca[ci].totalVisits=(parseInt(ca[ci].totalVisits)||0)+1;updateRow(cs,ci,ch,ca[ci]);}
+      const cs=getSheet(CONFIG.SHEETS.CUSTOMERS); const ca=sheetToObjects(cs); const ch=getHeaders(cs); const ci=ca.findIndex(c=>c.customerId===customerId); 
+      if(ci!==-1){ca[ci].totalVisits=(parseInt(ca[ci].totalVisits)||0)+successfulBookings.length;updateRow(cs,ci,ch,ca[ci]);}
     } catch(e) {}
-    // Auto-create schedule entry if one doesn't exist for this tech+date
-    try {
-      const schSheet = getSheet(CONFIG.SHEETS.SCHEDULES);
-      const schedules = sheetToObjects(schSheet);
-      const existingSch = schedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === bookingDate);
-      if (!existingSch) {
-        const schHeaders = getHeaders(schSheet);
-        appendRow(schSheet, schHeaders, { scheduleId: generateId('SCH'), technicianId: technicianId, date: bookingDate, startTime: '08:00', endTime: '22:00', isActive: true });
-      }
-    } catch(e) {}
-    return { success: true, booking };
-  } catch(e) { return { success: false, error: e.message }; }
+    
+    return { success: true, bookings: successfulBookings, skippedDates };
+  } catch(e) { return { success: false, error: 'create_booking_failed: ' + e.message }; }
 }
 
 function handleGetCustomerBookings(payload) {

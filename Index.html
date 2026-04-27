@@ -103,6 +103,8 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 .tabs{display:flex;gap:3px;background:var(--stone);border-radius:var(--r);padding:3px;margin-bottom:20px}
 .tab{flex:1;padding:9px;border-radius:calc(var(--r) - 2px);font-size:12px;font-weight:500;color:var(--sub);background:none;border:none;cursor:pointer;transition:.2s;text-align:center;font-family:var(--ff)}
 .tab.active{background:#fff;color:var(--deep);box-shadow:0 2px 8px rgba(44,33,24,.1)}
+.rec-day{width:36px;height:36px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px}
+.rec-day.active{background:var(--gold);color:#fff;border-color:var(--gold)}
 
 /* ── AUTH ─── */
 .auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;min-height:calc(100vh - var(--nav-h))}
@@ -364,8 +366,36 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
     </div>
     <div class="step-content" id="step3">
       <div class="card">
-        <div class="form-group"><label class="form-label" id="s3DateLabel"></label><input class="form-control" id="bookDate" type="date"/></div>
-        <div class="form-group"><label class="form-label" id="s3SlotLabel"></label><div id="slotsContainer"><p style="color:var(--sub);font-size:12px" id="selectDateHint"></p></div></div>
+        <div class="tabs" style="margin-bottom:14px">
+          <button class="tab active" id="tabOneTime" onclick="setRecurring(false)">Đặt 1 buổi</button>
+          <button class="tab" id="tabRecurring" onclick="setRecurring(true)">Đặt định kỳ</button>
+        </div>
+        <div id="uiOneTime">
+          <div class="form-group"><label class="form-label" id="s3DateLabel"></label><input class="form-control" id="bookDate" type="date"/></div>
+          <div class="form-group"><label class="form-label" id="s3SlotLabel"></label><div id="slotsContainer"><p style="color:var(--sub);font-size:12px" id="selectDateHint"></p></div></div>
+        </div>
+        <div id="uiRecurring" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+            <div><label class="form-label">Ngày bắt đầu</label><input class="form-control" id="recStartDate" type="date" onchange="checkRecValid()"/></div>
+            <div><label class="form-label">Ngày kết thúc</label><input class="form-control" id="recEndDate" type="date" onchange="checkRecValid()"/></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Chọn thứ trong tuần</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap" id="recDays">
+              <button class="btn btn-outline rec-day" data-day="1" onclick="toggleRecDay(this)">T2</button>
+              <button class="btn btn-outline rec-day" data-day="2" onclick="toggleRecDay(this)">T3</button>
+              <button class="btn btn-outline rec-day" data-day="3" onclick="toggleRecDay(this)">T4</button>
+              <button class="btn btn-outline rec-day" data-day="4" onclick="toggleRecDay(this)">T5</button>
+              <button class="btn btn-outline rec-day" data-day="5" onclick="toggleRecDay(this)">T6</button>
+              <button class="btn btn-outline rec-day" data-day="6" onclick="toggleRecDay(this)">T7</button>
+              <button class="btn btn-outline rec-day" data-day="0" onclick="toggleRecDay(this)">CN</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Chọn giờ</label>
+            <input class="form-control" id="recTime" type="time" value="09:00" onchange="checkRecValid()"/>
+          </div>
+        </div>
         <div class="form-group"><label class="form-label" id="s3NoteLabel"></label><textarea class="form-control" id="bookNote" rows="2" style="resize:none"></textarea></div>
       </div>
       <div style="display:flex;gap:10px;margin-top:14px">
@@ -642,7 +672,7 @@ const I18N = {
 // ── STATE ─────────────────────────────────────────────────────
 let state = {
   lang:'vi', customer:null, services:[], technicians:[],
-  booking:{serviceId:null,technicianId:null,date:null,startTime:null,endTime:null,note:''},
+  booking:{serviceId:null,technicianId:null,date:null,startTime:null,endTime:null,note:'',isRecurring:false,recStartDate:'',recEndDate:'',recDays:[],recTime:'09:00'},
   currentStep:1, currentPage:'home',
   admin:{token:null, bookings:[], services:[], technicians:[], schedules:[]}
 };
@@ -887,30 +917,74 @@ function goStep(n){
   if(n===4)renderSummary();
   if(n===3){
     const container=document.getElementById('slotsContainer');
-    if(container) container.innerHTML='<div class="spinner"></div>';
-    setTimeout(() => {
-      const di=document.getElementById('bookDate');
-      if(di){
-        state.booking.date=di.value||new Date().toISOString().split('T')[0];
-        loadSlots();
-      }
-    }, 400);
+    if(container&&!state.booking.isRecurring) {
+      container.innerHTML='<div class="spinner"></div>';
+      setTimeout(() => {
+        const di=document.getElementById('bookDate');
+        if(di){
+          state.booking.date=di.value||new Date().toISOString().split('T')[0];
+          loadSlots();
+        }
+      }, 400);
+    } else {
+      checkRecValid();
+    }
   }
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
   const di=document.getElementById('bookDate');
+  const dStart=document.getElementById('recStartDate');
+  const dEnd=document.getElementById('recEndDate');
   if(di){
     const today=new Date().toISOString().split('T')[0];
     di.min=today;di.value=today;
+    if(dStart) {dStart.min=today;dStart.value=today;}
+    if(dEnd) {dEnd.min=today;
+      let nextMonth = new Date(); nextMonth.setMonth(nextMonth.getMonth()+1);
+      dEnd.value=nextMonth.toISOString().split('T')[0];
+    }
     state.booking.date=today; // Gán mặc định vào state
     di.addEventListener('change',async()=>{
+      if(state.booking.isRecurring) return;
       state.booking.date=di.value;state.booking.startTime=null;
       const bn=document.getElementById('btnNext3');if(bn)bn.disabled=true;
       await loadSlots();
     });
   }
 });
+
+function setRecurring(isRec){
+  state.booking.isRecurring=isRec;
+  document.getElementById('tabOneTime').classList.toggle('active',!isRec);
+  document.getElementById('tabRecurring').classList.toggle('active',isRec);
+  document.getElementById('uiOneTime').style.display=isRec?'none':'block';
+  document.getElementById('uiRecurring').style.display=isRec?'block':'none';
+  checkRecValid();
+}
+
+function toggleRecDay(btn){
+  const day=parseInt(btn.getAttribute('data-day'));
+  btn.classList.toggle('active');
+  if(btn.classList.contains('active')){
+    if(!state.booking.recDays.includes(day)) state.booking.recDays.push(day);
+  } else {
+    state.booking.recDays=state.booking.recDays.filter(d=>d!==day);
+  }
+  checkRecValid();
+}
+
+function checkRecValid(){
+  const bn=document.getElementById('btnNext3');if(!bn)return;
+  if(state.booking.isRecurring){
+    state.booking.recStartDate=document.getElementById('recStartDate').value;
+    state.booking.recEndDate=document.getElementById('recEndDate').value;
+    state.booking.recTime=document.getElementById('recTime').value;
+    bn.disabled=!(state.booking.recStartDate && state.booking.recEndDate && state.booking.recDays.length>0 && state.booking.recTime);
+  } else {
+    bn.disabled=!state.booking.startTime;
+  }
+}
 
 async function loadSlots(){
   const container=document.getElementById('slotsContainer');
@@ -945,8 +1019,11 @@ function renderSummary(){
   el.innerHTML=`
     <div class="summary-row"><span class="summary-label">${t('sum_service')}</span><span class="summary-val">${state.lang==='vi'?svc.nameVi:svc.nameEn}</span></div>
     <div class="summary-row"><span class="summary-label">${t('sum_tech')}</span><span class="summary-val">${state.lang==='vi'?tech.nameVi:tech.nameEn}</span></div>
-    <div class="summary-row"><span class="summary-label">${t('sum_date')}</span><span class="summary-val">${fmtDate(state.booking.date)}</span></div>
-    <div class="summary-row"><span class="summary-label">${t('sum_time')}</span><span class="summary-val">${state.booking.startTime} – ${state.booking.endTime}</span></div>
+    ${state.booking.isRecurring ? 
+      `<div class="summary-row"><span class="summary-label">Định kỳ</span><span class="summary-val" style="font-size:12px;text-align:right">Từ ${fmtDateShort(state.booking.recStartDate).day}/${fmtDateShort(state.booking.recStartDate).mon} đến ${fmtDateShort(state.booking.recEndDate).day}/${fmtDateShort(state.booking.recEndDate).mon}<br>Các thứ: ${state.booking.recDays.map(d=>d===0?'CN':'T'+(d+1)).join(', ')}</span></div>
+       <div class="summary-row"><span class="summary-label">${t('sum_time')}</span><span class="summary-val">${state.booking.recTime}</span></div>` 
+    : `<div class="summary-row"><span class="summary-label">${t('sum_date')}</span><span class="summary-val">${fmtDate(state.booking.date)}</span></div>
+       <div class="summary-row"><span class="summary-label">${t('sum_time')}</span><span class="summary-val">${state.booking.startTime} – ${state.booking.endTime}</span></div>`}
     <div class="summary-row"><span class="summary-label">${t('sum_price')}</span><span class="summary-val">${fmt(svc.price)}</span></div>`;
   const bn=document.getElementById('bookNote');if(bn)state.booking.note=bn.value;
 }
@@ -955,14 +1032,37 @@ async function confirmBooking(){
   if(!state.customer){showPage('auth');return;}
   showLoading(true,t('saving'));
   let res;
-  try{res=await api('createBooking',{customerId:state.customer.customerId,serviceId:state.booking.serviceId,technicianId:state.booking.technicianId,bookingDate:state.booking.date,startTime:state.booking.startTime,note:state.booking.note});}
+  try{
+    const payload = {
+      customerId:state.customer.customerId,
+      serviceId:state.booking.serviceId,
+      technicianId:state.booking.technicianId,
+      note:state.booking.note,
+      isRecurring:state.booking.isRecurring
+    };
+    if(state.booking.isRecurring){
+      payload.startDate = state.booking.recStartDate;
+      payload.endDate = state.booking.recEndDate;
+      payload.daysOfWeek = state.booking.recDays;
+      payload.startTime = state.booking.recTime;
+    } else {
+      payload.bookingDate = state.booking.date;
+      payload.startTime = state.booking.startTime;
+    }
+    res=await api('createBooking', payload);
+  }
   catch(e){res={success:false,error:'network_error'};}
   showLoading(false);
   if(!res||!res.success){
     const errs={slot_taken:t('errSlotTaken'),past_time:t('errPast'),network_error:'Lỗi kết nối!'};
     showToast(errs[res&&res.error]||'Đặt lịch thất bại!','error');return;
   }
-  showToast(t('successBooking'),'success',4000);showPage('bookings');
+  if(res.skippedDates && res.skippedDates.length > 0) {
+    showToast(`Đã đặt thành công! ${res.skippedDates.length} buổi bị bỏ qua do kín lịch.`, 'success', 6000);
+  } else {
+    showToast(t('successBooking'),'success',4000);
+  }
+  showPage('bookings');
 }
 
 // ── MY BOOKINGS ───────────────────────────────────────────────
