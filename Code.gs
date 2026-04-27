@@ -82,11 +82,19 @@ function sheetToObjects(sheet) {
 }
 
 function appendRow(sheet, headers, obj) {
-  sheet.appendRow(headers.map(h => (obj[h] !== undefined ? obj[h] : '')));
+  sheet.appendRow(headers.map(h => {
+    let val = obj[h] !== undefined ? obj[h] : '';
+    if (h === 'phone') return "'" + val;
+    return val;
+  }));
 }
 
 function updateRow(sheet, idx, headers, obj) {
-  sheet.getRange(idx + 2, 1, 1, headers.length).setValues([headers.map(h => (obj[h] !== undefined ? obj[h] : ''))]);
+  sheet.getRange(idx + 2, 1, 1, headers.length).setValues([headers.map(h => {
+    let val = obj[h] !== undefined ? obj[h] : '';
+    if (h === 'phone') return "'" + val;
+    return val;
+  })]);
 }
 
 function deleteRow(sheet, idx) { sheet.deleteRow(idx + 2); }
@@ -271,7 +279,7 @@ function handleCreateBooking(payload) {
       const existingSch = schedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === bookingDate);
       if (!existingSch) {
         const schHeaders = getHeaders(schSheet);
-        appendRow(schSheet, schHeaders, { scheduleId: generateId('SCH'), technicianId: technicianId, date: bookingDate, startTime: '08:00', endTime: '20:00', isActive: true });
+        appendRow(schSheet, schHeaders, { scheduleId: generateId('SCH'), technicianId: technicianId, date: bookingDate, startTime: '08:00', endTime: '22:00', isActive: true });
       }
     } catch(e) {}
     return { success: true, booking };
