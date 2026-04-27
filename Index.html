@@ -265,7 +265,7 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 @media(max-width:640px){
   .bottom-nav{display:block}
   body{padding-bottom:58px}
-  nav.top-nav .nav-btn:not(.lang-toggle){display:none}
+  nav.top-nav .nav-btn:not(.lang-toggle):not(#navAdmin){display:none}
   .services-grid{grid-template-columns:1fr 1fr}
   .booking-item{grid-template-columns:auto 1fr}
   .hero{padding:36px 16px 28px}
@@ -1020,6 +1020,9 @@ async function renderProfile(){
       <div class="qr-code-text" onclick="copyRef('${res.referralCode}')">${res.referralCode}</div>
       <p style="font-size:11px;color:var(--sub);margin-top:4px">Nhấn để sao chép</p>
       <div class="stat-chips"><div class="stat-chip"><div class="val">${res.referralCount}</div><div class="lbl">${t('referralCount')}</div></div></div>
+    </div>
+    <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--stone);text-align:center">
+      <button class="btn btn-outline btn-sm" onclick="showPage('admin')" style="opacity:0.6">🔐 Quản lý hệ thống (Admin)</button>
     </div>`;
   }
 }
