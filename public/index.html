@@ -885,10 +885,10 @@ function goStep(n){
     setTimeout(() => {
       const di=document.getElementById('bookDate');
       if(di){
-        state.booking.date = di.value;
-        loadSlots();
+        if(!di.value) di.value = new Date().toISOString().split('T')[0];
+        di.dispatchEvent(new Event('change'));
       }
-    }, 50);
+    }, 200);
   }
 }
 
