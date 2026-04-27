@@ -129,7 +129,10 @@ function hashPassword(pw) {
 function sanitizeCustomer(c) { const {passwordHash, ...safe} = c; return safe; }
 
 function verifyAdmin(payload) {
-  return payload && payload.adminToken === CONFIG.ADMIN.USERNAME + ':' + hashPassword(CONFIG.ADMIN.PASSWORD);
+  if (!payload || !payload.adminToken) return false;
+  const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
+  const admin = customers.find(c => c.customerId === payload.adminToken && isActive(c.isAdmin));
+  return !!admin;
 }
 
 // ── AUTH ─────────────────────────────────────────────────────
@@ -140,7 +143,7 @@ function handleLogin(payload) {
   const customer = customers.find(c => String(c.phone).trim() === String(phone).trim() && isActive(c.isActive));
   if (!customer) return { success: false, error: 'not_found' };
   if (customer.passwordHash !== hashPassword(password)) return { success: false, error: 'wrong_password' };
-  return { success: true, customer: sanitizeCustomer(customer) };
+  return { success: true, customer: sanitizeCustomer(customer), isAdmin: isActive(customer.isAdmin) };
 }
 
 function handleRegister(payload) {
@@ -167,8 +170,8 @@ function handleRegister(payload) {
         } catch(e) {}
       }
     }
-    appendRow(sheet, headers, { customerId, phone: String(phone).trim(), email: email||'', name, passwordHash: hashPassword(password), referralCode: myReferralCode, referredBy, referralCount: 0, totalVisits: 0, createdAt: now, isActive: true });
-    return { success: true, customer: sanitizeCustomer({ customerId, phone, email: email||'', name, referralCode: myReferralCode, referredBy, referralCount: 0, totalVisits: 0, createdAt: now, isActive: true }), isFirstVisit: !!referredBy };
+    appendRow(sheet, headers, { customerId, phone: String(phone).trim(), email: email||'', name, passwordHash: hashPassword(password), referralCode: myReferralCode, referredBy, referralCount: 0, totalVisits: 0, createdAt: now, isActive: true, isAdmin: false });
+    return { success: true, customer: sanitizeCustomer({ customerId, phone, email: email||'', name, referralCode: myReferralCode, referredBy, referralCount: 0, totalVisits: 0, createdAt: now, isActive: true, isAdmin: false }), isFirstVisit: !!referredBy };
   } catch(e) { return { success: false, error: 'register_failed: ' + e.message }; }
 }
 
@@ -319,10 +322,8 @@ function handleTrackQRScan(payload) {
 
 // ── ADMIN ─────────────────────────────────────────────────────
 function handleAdminLogin(payload) {
-  const { username, password } = payload;
-  if (username===CONFIG.ADMIN.USERNAME && password===CONFIG.ADMIN.PASSWORD)
-    return { success: true, token: CONFIG.ADMIN.USERNAME+':'+hashPassword(password) };
-  return { success: false, error: 'wrong_credentials' };
+  // Deprecated - Admin now uses regular login
+  return { success: false, error: 'deprecated' };
 }
 
 function handleAdminGetAllBookings(payload) {
