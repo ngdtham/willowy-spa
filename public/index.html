@@ -880,6 +880,13 @@ function goStep(n){
   const el=document.getElementById('step'+n);if(el)el.classList.add('active');
   renderStepIndicator();
   if(n===4)renderSummary();
+  if(n===3){
+    const di=document.getElementById('bookDate');
+    if(di){
+      if(!state.booking.date) state.booking.date = di.value;
+      loadSlots();
+    }
+  }
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
@@ -887,6 +894,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(di){
     const today=new Date().toISOString().split('T')[0];
     di.min=today;di.value=today;
+    state.booking.date=today; // Gán mặc định vào state
     di.addEventListener('change',async()=>{
       state.booking.date=di.value;state.booking.startTime=null;
       const bn=document.getElementById('btnNext3');if(bn)bn.disabled=true;
