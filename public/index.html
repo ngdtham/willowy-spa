@@ -882,13 +882,15 @@ function goStep(n){
   renderStepIndicator();
   if(n===4)renderSummary();
   if(n===3){
+    const container=document.getElementById('slotsContainer');
+    if(container) container.innerHTML='<div class="spinner"></div>';
     setTimeout(() => {
       const di=document.getElementById('bookDate');
       if(di){
-        if(!di.value) di.value = new Date().toISOString().split('T')[0];
-        di.dispatchEvent(new Event('change'));
+        state.booking.date=di.value||new Date().toISOString().split('T')[0];
+        loadSlots();
       }
-    }, 200);
+    }, 300);
   }
 }
 
@@ -907,12 +909,14 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 async function loadSlots(){
-  if(!state.booking.technicianId||!state.booking.date)return;
-  showLoading(true);
+  const container=document.getElementById('slotsContainer');
+  if(!container)return;
+  if(!state.booking.technicianId||!state.booking.date){
+    container.innerHTML=`<p style="color:var(--sub);font-size:12px">${t('selectDateHint')}</p>`;
+    return;
+  }
+  container.innerHTML='<div class="spinner"></div>';
   const res=await api('getAvailableSlots',{technicianId:state.booking.technicianId,date:state.booking.date,serviceId:state.booking.serviceId});
-  showLoading(false);
-  const container=document.getElementById('slotsContainer');if(!container)return;
-  if(!res.success||!res.slots.length){container.innerHTML=`<p style="color:var(--sub);font-size:12px">${t('noSlot')}</p>`;return;}
   container.innerHTML=`<div class="slots-grid">${res.slots.map(s=>{
     let cls='slot';
     if(s.isPast) cls+=' past';
