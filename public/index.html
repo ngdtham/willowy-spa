@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<title>Willowy Spa</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --cream:#faf7f2;--stone:#e8e0d4;--warm:#c9b99a;--gold:#a8865c;
+  --deep:#2c2118;--moss:#4a5240;--ink:#1a1410;
+  --bg:var(--cream);--surface:#fff;--border:var(--stone);
+  --text:var(--ink);--sub:#7a6b5a;
+  --r:14px;--r2:20px;
+  --sh:0 4px 24px rgba(44,33,24,.08);--sh2:0 12px 48px rgba(44,33,24,.16);
+  --ff:'Montserrat',sans-serif;--nav-h:60px;
+  --admin-sidebar:220px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:var(--ff);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;overflow-x:hidden}
+button{cursor:pointer;font-family:var(--ff);border:none;outline:none}
+input,select,textarea{font-family:var(--ff);outline:none}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--stone)}::-webkit-scrollbar-thumb{background:var(--warm);border-radius:4px}
+
+/* ── LAYOUT ─── */
+#app{min-height:100vh;display:flex;flex-direction:column}
+.page{display:none;flex:1;flex-direction:column;animation:fadeUp .3s ease}
+.page.active{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:.8}}
+
+/* ── NAV ─── */
+nav.top-nav{position:sticky;top:0;z-index:100;height:var(--nav-h);background:rgba(250,247,242,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--stone);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px}
+.nav-brand{font-size:18px;font-weight:600;color:var(--gold);cursor:pointer;letter-spacing:.02em}
+.nav-brand em{font-style:italic;color:var(--moss)}
+.nav-actions{display:flex;align-items:center;gap:8px}
+.nav-btn{background:none;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;color:var(--sub);transition:.2s}
+.nav-btn:hover{color:var(--gold)}
+.nav-btn.primary{background:var(--gold);color:#fff}
+.nav-btn.primary:hover{background:var(--deep)}
+.lang-toggle{display:flex;background:var(--stone);border-radius:20px;overflow:hidden}
+.lang-btn{padding:4px 11px;font-size:11px;font-weight:500;color:var(--sub);background:none;border:none}
+.lang-btn.active{background:var(--gold);color:#fff;border-radius:20px}
+
+/* ── HERO ─── */
+.hero{padding:56px 20px 36px;text-align:center;background:linear-gradient(155deg,#faf7f2,#f0e8db 50%,#e8ddd0);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,rgba(168,134,92,.07) 0%,transparent 60%);pointer-events:none}
+.hero-decor{position:absolute;top:-20px;right:-30px;width:180px;height:180px;border:1px solid rgba(168,134,92,.12);border-radius:50%;pointer-events:none}
+.hero-decor2{position:absolute;bottom:-30px;left:-20px;width:120px;height:120px;border:1px solid rgba(74,82,64,.08);border-radius:50%;pointer-events:none}
+.hero-sub{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:14px;font-weight:500}
+.hero h1{font-size:clamp(28px,6vw,56px);font-weight:300;color:var(--deep);line-height:1.15;margin-bottom:14px}
+.hero h1 em{font-style:italic;color:var(--gold)}
+.hero-desc{max-width:460px;margin:0 auto 28px;color:var(--sub);font-size:14px}
+.hero-cta{display:inline-flex;align-items:center;gap:8px;background:var(--deep);color:var(--cream);padding:13px 28px;border-radius:40px;font-size:13px;font-weight:500;letter-spacing:.03em;transition:.25s;border:none;cursor:pointer}
+.hero-cta:hover{background:var(--gold);transform:translateY(-2px)}
+
+/* ── SECTION ─── */
+.section{padding:36px 20px;max-width:840px;margin:0 auto;width:100%}
+.section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px}
+.section-title{font-size:22px;font-weight:600;color:var(--deep)}
+.section-link{font-size:12px;color:var(--gold);cursor:pointer}
+.section-link:hover{text-decoration:underline}
+
+/* ── CARDS ─── */
+.container{max-width:840px;margin:0 auto;padding:20px;width:100%}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:24px;box-shadow:var(--sh)}
+.card+.card{margin-top:14px}
+
+/* ── SERVICES GRID ─── */
+.services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.svc-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:20px;transition:.25s;cursor:pointer;position:relative;overflow:hidden}
+.svc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--moss));transform:scaleX(0);transform-origin:left;transition:.3s}
+.svc-card:hover{box-shadow:var(--sh2);transform:translateY(-2px)}
+.svc-card:hover::before{transform:scaleX(1)}
+.svc-icon{width:40px;height:40px;background:linear-gradient(135deg,#f5ede0,#e8d8c0);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px}
+.svc-name{font-size:14px;font-weight:600;color:var(--deep);margin-bottom:3px}
+.svc-dur{font-size:11px;color:var(--sub);margin-bottom:8px}
+.svc-price{font-size:14px;font-weight:500;color:var(--gold)}
+
+/* ── FORM ─── */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:11px;font-weight:600;color:var(--sub);letter-spacing:.07em;text-transform:uppercase;margin-bottom:7px}
+.form-control{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px;transition:.2s;font-family:var(--ff)}
+.form-control:focus{border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(168,134,92,.1)}
+.form-control::placeholder{color:var(--warm)}
+select.form-control{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a8865c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+
+/* ── BUTTONS ─── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 20px;border-radius:var(--r);font-size:13px;font-weight:500;transition:.2s;cursor:pointer;border:none;letter-spacing:.02em;font-family:var(--ff)}
+.btn-primary{background:var(--gold);color:#fff}
+.btn-primary:hover{background:var(--deep)}
+.btn-primary:disabled{background:var(--warm);cursor:not-allowed}
+.btn-outline{background:none;border:1.5px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+.btn-danger{background:none;border:1.5px solid #e57373;color:#e57373;font-size:12px;padding:7px 14px}
+.btn-danger:hover{background:#fdecea}
+.btn-success{background:var(--moss);color:#fff}
+.btn-block{width:100%}
+.btn-sm{padding:7px 14px;font-size:12px}
+
+/* ── TABS ─── */
+.tabs{display:flex;gap:3px;background:var(--stone);border-radius:var(--r);padding:3px;margin-bottom:20px}
+.tab{flex:1;padding:9px;border-radius:calc(var(--r) - 2px);font-size:12px;font-weight:500;color:var(--sub);background:none;border:none;cursor:pointer;transition:.2s;text-align:center;font-family:var(--ff)}
+.tab.active{background:#fff;color:var(--deep);box-shadow:0 2px 8px rgba(44,33,24,.1)}
+
+/* ── AUTH ─── */
+.auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;min-height:calc(100vh - var(--nav-h))}
+.auth-box{width:100%;max-width:400px}
+.auth-logo{text-align:center;margin-bottom:24px}
+.auth-logo h2{font-size:26px;font-weight:600;color:var(--deep)}
+.auth-logo p{color:var(--sub);font-size:12px;margin-top:4px}
+
+/* ── STEP BOOKING ─── */
+.steps{display:flex;gap:6px;margin-bottom:24px;overflow-x:auto;padding-bottom:2px}
+.step{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;color:var(--sub);background:var(--stone);transition:.2s}
+.step.active{background:var(--gold);color:#fff}
+.step.done{background:var(--moss);color:#fff}
+.step-num{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+
+/* ── SLOTS ─── */
+.slots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px}
+.slot{padding:9px;border:1.5px solid var(--border);border-radius:var(--r);text-align:center;font-size:12px;font-weight:500;cursor:pointer;transition:.2s;background:var(--surface);font-family:var(--ff)}
+.slot:hover:not(.unavailable):not(.past):not(.booked){border-color:var(--gold);color:var(--gold)}
+.slot.selected{background:var(--gold);border-color:var(--gold);color:#fff}
+.slot.past{background:#f5f2ed;color:#c9c0b3;cursor:not-allowed;opacity:.4;border-color:transparent}
+.slot.booked{background:var(--stone);color:var(--warm);cursor:not-allowed;text-decoration:line-through;opacity:.55;border-color:transparent}
+.slot.unavailable{background:var(--stone);color:var(--warm);cursor:not-allowed;text-decoration:line-through;opacity:.55;border-color:transparent}
+
+/* ── BOOKING LIST ─── */
+.booking-item{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:start;padding:18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:10px;transition:.2s}
+.booking-item:hover{box-shadow:var(--sh)}
+.booking-date{text-align:center;background:var(--stone);border-radius:10px;padding:8px 12px;min-width:52px}
+.booking-date .day{font-size:20px;font-weight:700;line-height:1;color:var(--deep)}
+.booking-date .mon{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);margin-top:2px}
+.booking-info h4{font-size:13px;font-weight:600;color:var(--deep);margin-bottom:3px}
+.booking-info p{font-size:12px;color:var(--sub)}
+.status-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block;margin-top:5px}
+.status-confirmed{background:#e8f5e9;color:#2e7d32}
+.status-cancelled{background:#fdecea;color:#c62828}
+.status-pending{background:#fff8e1;color:#f57f17}
+
+/* ── QR ─── */
+.qr-wrap{text-align:center;padding:28px}
+.qr-box{width:160px;height:160px;margin:0 auto 14px;background:var(--stone);border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.qr-svg{width:144px;height:144px}
+.qr-code-text{font-family:monospace;font-size:13px;font-weight:700;color:var(--gold);letter-spacing:.08em;background:var(--stone);padding:7px 18px;border-radius:20px;display:inline-block;margin-bottom:14px;cursor:pointer}
+.stat-chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.stat-chip{padding:10px 18px;background:var(--stone);border-radius:var(--r);text-align:center}
+.stat-chip .val{font-size:20px;font-weight:700;color:var(--gold)}
+.stat-chip .lbl{font-size:10px;color:var(--sub);margin-top:2px}
+
+/* ── PROFILE ─── */
+.avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--moss));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0}
+.profile-header{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+
+/* ── TECH GRID ─── */
+.tech-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.tech-card{padding:14px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);text-align:center;cursor:pointer;transition:.2s}
+.tech-card:hover,.tech-card.selected{border-color:var(--gold);background:#fdf8f2}
+.tech-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--stone),var(--warm));margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--deep)}
+.tech-name{font-size:12px;font-weight:500;color:var(--deep);line-height:1.3}
+
+/* ── SUMMARY ─── */
+.summary-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--stone)}
+.summary-row:last-child{border:none;font-weight:600;color:var(--gold);font-size:15px}
+.summary-label{color:var(--sub);font-size:12px}
+.summary-val{font-size:13px;color:var(--deep)}
+.step-content{display:none}
+.step-content.active{display:block}
+
+/* ── TOAST ─── */
+#toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--deep);color:var(--cream);padding:11px 22px;border-radius:var(--r);font-size:13px;opacity:0;transition:.3s;z-index:9999;pointer-events:none;max-width:88vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.error{background:#c62828}
+#toast.success{background:var(--moss)}
+
+/* ── LOADING ─── */
+.spinner{width:28px;height:28px;border:3px solid var(--stone);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;margin:28px auto}
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(250,247,242,.82);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:10px}
+.loading-overlay.show{display:flex}
+.loading-overlay p{color:var(--sub);font-size:13px}
+
+/* ── BOTTOM NAV ─── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:58px;background:rgba(250,247,242,.96);backdrop-filter:blur(12px);border-top:1px solid var(--stone);z-index:100;padding:0 6px}
+.bottom-nav-inner{display:flex;height:100%;align-items:center}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px;background:none;border:none;color:var(--sub);font-size:9px;font-weight:500;cursor:pointer;transition:.2s;border-radius:10px;font-family:var(--ff)}
+.bnav-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bnav-btn.active{color:var(--gold)}
+
+/* ── EMPTY STATE ─── */
+.empty{text-align:center;padding:40px 20px;color:var(--sub)}
+.empty-icon{font-size:36px;margin-bottom:14px;opacity:.5}
+.empty h4{font-size:16px;font-weight:600;color:var(--deep);margin-bottom:7px}
+
+/* ── SKELETON ─── */
+.skel{background:var(--stone);border-radius:8px;animation:pulse 1.2s ease infinite}
+
+/* ────────────────────────────────────────────────────────────
+   ADMIN PANEL
+──────────────────────────────────────────────────────────── */
+#pageAdmin{background:#f4f1ec;min-height:100vh}
+.admin-layout{display:flex;min-height:calc(100vh - var(--nav-h));flex:1}
+
+/* Sidebar */
+.admin-sidebar{width:var(--admin-sidebar);background:var(--deep);color:#fff;flex-shrink:0;display:flex;flex-direction:column;padding:20px 0}
+.admin-sidebar-logo{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:12px}
+.admin-sidebar-logo span{font-size:13px;font-weight:600;color:var(--gold)}
+.admin-sidebar-logo small{display:block;color:rgba(255,255,255,.4);font-size:10px;margin-top:2px}
+.admin-nav-item{display:flex;align-items:center;gap:10px;padding:11px 20px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);cursor:pointer;transition:.2s;border-left:3px solid transparent}
+.admin-nav-item:hover{color:#fff;background:rgba(255,255,255,.06)}
+.admin-nav-item.active{color:#fff;background:rgba(168,134,92,.2);border-left-color:var(--gold)}
+.admin-nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* Main content */
+.admin-main{flex:1;overflow-y:auto;padding:24px}
+.admin-panel{display:none}
+.admin-panel.active{display:block}
+.admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:gap}
+.admin-title{font-size:18px;font-weight:700;color:var(--deep)}
+.admin-subtitle{font-size:12px;color:var(--sub);margin-top:2px}
+
+/* Admin table */
+.admin-table-wrap{background:#fff;border-radius:var(--r2);border:1px solid var(--stone);overflow:hidden;box-shadow:var(--sh)}
+.admin-table{width:100%;border-collapse:collapse}
+.admin-table th{background:#f9f6f2;padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--stone)}
+.admin-table td{padding:12px 14px;border-bottom:1px solid #f5f0ea;font-size:12px;color:var(--deep);vertical-align:middle}
+.admin-table tr:last-child td{border:none}
+.admin-table tr:hover td{background:#fdf9f5}
+.admin-actions{display:flex;gap:6px;align-items:center}
+
+/* Admin stats */
+.admin-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.admin-stat-card{background:#fff;border-radius:var(--r2);padding:18px;border:1px solid var(--stone);box-shadow:var(--sh)}
+.admin-stat-card .val{font-size:28px;font-weight:700;color:var(--gold)}
+.admin-stat-card .lbl{font-size:11px;color:var(--sub);margin-top:3px}
+
+/* Admin filter */
+.admin-filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.admin-filters .form-control{max-width:180px;padding:8px 12px;font-size:12px}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(26,20,16,.55);backdrop-filter:blur(4px);z-index:500;align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:var(--r2);padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;animation:fadeUp .25s ease;box-shadow:var(--sh2)}
+.modal h3{font-size:17px;font-weight:700;color:var(--deep);margin-bottom:20px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--stone)}
+
+/* Switch */
+.switch{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--sub)}
+.switch input{display:none}
+.switch-track{width:36px;height:20px;background:var(--stone);border-radius:10px;cursor:pointer;transition:.2s;position:relative;flex-shrink:0}
+.switch-track::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.switch input:checked+.switch-track{background:var(--moss)}
+.switch input:checked+.switch-track::after{left:19px}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600}
+.badge-active{background:#e8f5e9;color:#2e7d32}
+.badge-inactive{background:#fdecea;color:#c62828}
+
+/* Responsive */
+@media(max-width:640px){
+  .bottom-nav{display:block}
+  body{padding-bottom:58px}
+  nav.top-nav .nav-btn:not(.lang-toggle){display:none}
+  .services-grid{grid-template-columns:1fr 1fr}
+  .booking-item{grid-template-columns:auto 1fr}
+  .hero{padding:36px 16px 28px}
+  .section,.container{padding:16px}
+  .admin-sidebar{display:none}
+  .admin-main{padding:16px}
+}
+@media(min-width:641px){
+  nav.top-nav .nav-btn{display:inline-flex}
+}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><p id="loadingText">Đang tải...</p></div>
+<div id="toast"></div>
+
+<div id="app">
+<!-- NAV -->
+<nav class="top-nav">
+  <div class="nav-brand" onclick="goHome()">🪷 Willowy<em>Spa</em></div>
+  <div class="nav-actions">
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btnVI" onclick="setLang('vi')">VI</button>
+      <button class="lang-btn" id="btnEN" onclick="setLang('en')">EN</button>
+    </div>
+    <button class="nav-btn" id="navLogin" onclick="showPage('auth')"></button>
+    <button class="nav-btn primary" id="navBook" onclick="showPage('booking')" style="display:none"></button>
+    <button class="nav-btn" id="navProfile" onclick="showPage('profile')" style="display:none"></button>
+    <button class="nav-btn" id="navLogout" onclick="logout()" style="display:none"></button>
+    <button class="nav-btn" id="navAdmin" onclick="showPage('admin')" style="font-size:11px;opacity:.5" title="Admin">🔐</button>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div class="page active" id="pageHome">
+  <div class="hero">
+    <div class="hero-decor"></div><div class="hero-decor2"></div>
+    <p class="hero-sub" id="heroSub"></p>
+    <h1 id="heroTitle"></h1>
+    <p class="hero-desc" id="heroDesc"></p>
+    <button class="hero-cta" onclick="showPage('booking')" id="heroCta"></button>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2 class="section-title" id="svcTitle"></h2>
+      <a class="section-link" onclick="showPage('booking')" id="svcLink"></a>
+    </div>
+    <div class="services-grid" id="homeServices"></div>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div class="page" id="pageAuth">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo"><h2>🪷 Willowy Spa</h2><p id="authSubtitle"></p></div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchAuthTab('login')" id="tabLogin"></button>
+        <button class="tab" onclick="switchAuthTab('register')" id="tabRegister"></button>
+      </div>
+      <div id="loginForm">
+        <div class="form-group"><label class="form-label" id="lbPhone"></label><input class="form-control" id="loginPhone" type="tel" placeholder="0901234567"/></div>
+        <div class="form-group"><label class="form-label" id="lbPwd"></label><input class="form-control" id="loginPwd" type="password" placeholder="••••••••"/></div>
+        <button class="btn btn-primary btn-block" onclick="doLogin()" id="btnLogin"></button>
+      </div>
+      <div id="registerForm" style="display:none">
+        <div class="form-group"><label class="form-label" id="lbName"></label><input class="form-control" id="regName" type="text" placeholder="Nguyễn Văn A"/></div>
+        <div class="form-group"><label class="form-label" id="lbPhoneR"></label><input class="form-control" id="regPhone" type="tel" placeholder="0901234567"/></div>
+        <div class="form-group"><label class="form-label" id="lbEmail"></label><input class="form-control" id="regEmail" type="email" placeholder="email@example.com"/></div>
+        <div class="form-group"><label class="form-label" id="lbPwdR"></label><input class="form-control" id="regPwd" type="password" placeholder="Tối thiểu 6 ký tự"/></div>
+        <div class="form-group"><label class="form-label" id="lbRef"></label><input class="form-control" id="regRef" type="text" placeholder="REF_XXXXX (nếu có)"/></div>
+        <button class="btn btn-primary btn-block" onclick="doRegister()" id="btnRegister"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOOKING -->
+<div class="page" id="pageBooking">
+  <div class="container">
+    <h2 class="section-title" style="margin-bottom:20px" id="bookingTitle"></h2>
+    <div class="steps" id="stepIndicator"></div>
+    <div class="step-content active" id="step1">
+      <div class="card"><p class="form-label" id="s1Label" style="margin-bottom:14px"></p><div class="services-grid" id="serviceList"></div></div>
+    </div>
+    <div class="step-content" id="step2">
+      <div class="card"><p class="form-label" id="s2Label" style="margin-bottom:14px"></p><div class="tech-grid" id="techList"></div></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-outline" onclick="goStep(1)" id="btnBack2"></button>
+        <button class="btn btn-primary" onclick="goStep(3)" id="btnNext2" disabled></button>
+      </div>
+    </div>
+    <div class="step-content" id="step3">
+      <div class="card">
+        <div class="form-group"><label class="form-label" id="s3DateLabel"></label><input class="form-control" id="bookDate" type="date"/></div>
+        <div class="form-group"><label class="form-label" id="s3SlotLabel"></label><div id="slotsContainer"><p style="color:var(--sub);font-size:12px" id="selectDateHint"></p></div></div>
+        <div class="form-group"><label class="form-label" id="s3NoteLabel"></label><textarea class="form-control" id="bookNote" rows="2" style="resize:none"></textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-outline" onclick="goStep(2)" id="btnBack3"></button>
+        <button class="btn btn-primary" onclick="goStep(4)" id="btnNext3" disabled></button>
+      </div>
+    </div>
+    <div class="step-content" id="step4">
+      <div class="card"><h3 id="s4Title" style="font-size:16px;font-weight:700;margin-bottom:18px;color:var(--deep)"></h3><div id="bookingSummary"></div></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-outline" onclick="goStep(3)" id="btnBack4"></button>
+        <button class="btn btn-primary" onclick="confirmBooking()" id="btnConfirm"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MY BOOKINGS -->
+<div class="page" id="pageBookings">
+  <div class="container">
+    <h2 class="section-title" style="margin-bottom:20px" id="myBkTitle"></h2>
+    <div id="bookingsList"></div>
+  </div>
+</div>
+
+<!-- PROFILE -->
+<div class="page" id="pageProfile">
+  <div class="container">
+    <div class="card" id="profileCard"></div>
+    <div class="card" style="margin-top:14px" id="referralCard"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="page" id="pageAdmin">
+  <!-- Admin Login -->
+  <div id="adminLoginWrap" style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div class="auth-box">
+      <div class="auth-logo"><h2>🔐 Admin</h2><p>Willowy Spa Management</p></div>
+      <div class="form-group"><label class="form-label">Username</label><input class="form-control" id="adminUser" type="text" placeholder="willowy_admin"/></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-control" id="adminPass" type="password" placeholder="••••••••"/></div>
+      <button class="btn btn-primary btn-block" onclick="doAdminLogin()">Đăng nhập Admin</button>
+      <div style="text-align:center;margin-top:14px"><button class="btn btn-outline btn-sm" onclick="showPage('home')">← Về trang chủ</button></div>
+    </div>
+  </div>
+  <!-- Admin Dashboard -->
+  <div id="adminDashboard" style="display:none;flex:1;flex-direction:column">
+    <div class="admin-layout">
+      <!-- Sidebar -->
+      <div class="admin-sidebar">
+        <div class="admin-sidebar-logo"><span>🪷 Willowy Spa</span><small>Admin Panel</small></div>
+        <div class="admin-nav-item active" onclick="switchAdminPanel('bookings')" id="anav-bookings">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Lịch đặt
+        </div>
+        <div class="admin-nav-item" onclick="switchAdminPanel('services')" id="anav-services">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Dịch vụ
+        </div>
+        <div class="admin-nav-item" onclick="switchAdminPanel('technicians')" id="anav-technicians">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Kỹ thuật viên
+        </div>
+        <div class="admin-nav-item" onclick="switchAdminPanel('schedules')" id="anav-schedules">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Lịch làm việc
+        </div>
+        <div style="margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.1)">
+          <button class="btn btn-outline btn-sm" style="color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.2);width:100%" onclick="adminLogout()">Đăng xuất</button>
+        </div>
+      </div>
+      <!-- Main -->
+      <div class="admin-main">
+
+        <!-- BOOKINGS PANEL -->
+        <div class="admin-panel active" id="panel-bookings">
+          <div class="admin-header">
+            <div><div class="admin-title">Quản lý lịch đặt</div><div class="admin-subtitle">Tất cả lịch hẹn của khách hàng</div></div>
+            <button class="btn btn-primary btn-sm" onclick="loadAdminBookings()">↻ Làm mới</button>
+          </div>
+          <div id="adminStats" class="admin-stats"></div>
+          <div class="admin-filters">
+            <select class="form-control" id="filterStatus" onchange="filterBookings()">
+              <option value="">Tất cả trạng thái</option>
+              <option value="confirmed">Đã xác nhận</option>
+              <option value="cancelled">Đã hủy</option>
+              <option value="pending">Chờ xử lý</option>
+            </select>
+            <input class="form-control" id="filterDate" type="date" onchange="filterBookings()" placeholder="Lọc theo ngày"/>
+            <input class="form-control" id="filterSearch" type="text" oninput="filterBookings()" placeholder="Tìm tên khách..."/>
+          </div>
+          <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr>
+              <th>Khách hàng</th><th>Dịch vụ</th><th>Kỹ thuật viên</th>
+              <th>Ngày</th><th>Giờ</th><th>Trạng thái</th>
+            </tr></thead>
+            <tbody id="adminBookingsBody"></tbody>
+          </table></div>
+        </div>
+
+        <!-- SERVICES PANEL -->
+        <div class="admin-panel" id="panel-services">
+          <div class="admin-header">
+            <div><div class="admin-title">Quản lý dịch vụ</div><div class="admin-subtitle">Thêm, sửa, xóa dịch vụ</div></div>
+            <button class="btn btn-primary btn-sm" onclick="openServiceModal()">+ Thêm dịch vụ</button>
+          </div>
+          <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr><th>Tên dịch vụ (VI)</th><th>Tên (EN)</th><th>Thời gian</th><th>Giá</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="adminServicesBody"></tbody>
+          </table></div>
+        </div>
+
+        <!-- TECHNICIANS PANEL -->
+        <div class="admin-panel" id="panel-technicians">
+          <div class="admin-header">
+            <div><div class="admin-title">Quản lý kỹ thuật viên</div><div class="admin-subtitle">Thêm, sửa, xóa kỹ thuật viên</div></div>
+            <button class="btn btn-primary btn-sm" onclick="openTechModal()">+ Thêm KTV</button>
+          </div>
+          <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr><th>Tên (VI)</th><th>Tên (EN)</th><th>SĐT</th><th>Dịch vụ phụ trách</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="adminTechsBody"></tbody>
+          </table></div>
+        </div>
+
+        <!-- SCHEDULES PANEL -->
+        <div class="admin-panel" id="panel-schedules">
+          <div class="admin-header">
+            <div><div class="admin-title">Lịch làm việc</div><div class="admin-subtitle">Quản lý lịch theo ngày cụ thể</div></div>
+            <button class="btn btn-primary btn-sm" onclick="openScheduleModal()">+ Thêm lịch</button>
+          </div>
+          <div class="admin-filters">
+            <input class="form-control" id="filterSchDate" type="date" onchange="filterSchedules()" placeholder="Lọc ngày"/>
+            <select class="form-control" id="filterSchTech" onchange="filterSchedules()"><option value="">Tất cả KTV</option></select>
+          </div>
+          <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr><th>Ngày</th><th>Kỹ thuật viên</th><th>Giờ bắt đầu</th><th>Giờ kết thúc</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="adminSchedulesBody"></tbody>
+          </table></div>
+        </div>
+
+      </div><!-- /admin-main -->
+    </div><!-- /admin-layout -->
+  </div><!-- /adminDashboard -->
+</div><!-- /pageAdmin -->
+</div><!-- /app -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bnav-btn active" id="bnHome" onclick="goHome()">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span id="bnHomeLabel"></span>
+    </button>
+    <button class="bnav-btn" id="bnBook" onclick="showPage('booking')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span id="bnBookLabel"></span>
+    </button>
+    <button class="bnav-btn" id="bnBkgs" onclick="showPage('bookings')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span id="bnBkgsLabel"></span>
+    </button>
+    <button class="bnav-btn" id="bnProf" onclick="showPage('profile')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span id="bnProfLabel"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- MODALS -->
+<div class="modal-bg" id="modalService">
+  <div class="modal">
+    <h3 id="modalSvcTitle">Dịch vụ</h3>
+    <input type="hidden" id="svcId"/>
+    <div class="form-group"><label class="form-label">Tên dịch vụ (Tiếng Việt)</label><input class="form-control" id="svcNameVi" placeholder="Gội đầu thư giãn"/></div>
+    <div class="form-group"><label class="form-label">Tên dịch vụ (English)</label><input class="form-control" id="svcNameEn" placeholder="Relaxing Hair Wash"/></div>
+    <div class="form-group"><label class="form-label">Thời gian (phút)</label><input class="form-control" id="svcDuration" type="number" placeholder="45"/></div>
+    <div class="form-group"><label class="form-label">Giá (VNĐ)</label><input class="form-control" id="svcPrice" type="number" placeholder="150000"/></div>
+    <div class="form-group"><label class="form-label">Mô tả</label><textarea class="form-control" id="svcDesc" rows="2" style="resize:none"></textarea></div>
+    <label class="switch"><input type="checkbox" id="svcActive" checked/><div class="switch-track"></div><span>Kích hoạt</span></label>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalService')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveService()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalTech">
+  <div class="modal">
+    <h3 id="modalTechTitle">Kỹ thuật viên</h3>
+    <input type="hidden" id="techId"/>
+    <div class="form-group"><label class="form-label">Tên (Tiếng Việt)</label><input class="form-control" id="techNameVi" placeholder="Nguyễn Thị Lan"/></div>
+    <div class="form-group"><label class="form-label">Tên (English)</label><input class="form-control" id="techNameEn" placeholder="Nguyen Thi Lan"/></div>
+    <div class="form-group"><label class="form-label">Số điện thoại</label><input class="form-control" id="techPhone" type="tel" placeholder="0901234567"/></div>
+    <div class="form-group"><label class="form-label">Dịch vụ phụ trách (ID cách nhau bằng dấu phẩy)</label><input class="form-control" id="techSpecialties" placeholder="SVC_001,SVC_002"/></div>
+    <label class="switch"><input type="checkbox" id="techActive" checked/><div class="switch-track"></div><span>Kích hoạt</span></label>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalTech')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveTechnician()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalSchedule">
+  <div class="modal">
+    <h3>Lịch làm việc</h3>
+    <input type="hidden" id="schId"/>
+    <div class="form-group"><label class="form-label">Kỹ thuật viên</label><select class="form-control" id="schTech"></select></div>
+    <div class="form-group"><label class="form-label">Ngày làm việc</label><input class="form-control" id="schDate" type="date"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label class="form-label">Giờ bắt đầu</label><input class="form-control" id="schStart" type="time" value="09:00"/></div>
+      <div class="form-group"><label class="form-label">Giờ kết thúc</label><input class="form-control" id="schEnd" type="time" value="20:00"/></div>
+    </div>
+    <label class="switch"><input type="checkbox" id="schActive" checked/><div class="switch-track"></div><span>Kích hoạt</span></label>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalSchedule')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveSchedule()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+const API_URL = 'https://script.google.com/macros/s/AKfycbzyfSdGC1HTLaZWeU5HeuyEuCWfFdgcCA9sOWeliJ42W4oH5ishONdenSnc0ZSSyyg5/exec'; // << THAY THẾ URL CỦA BẠN
+
+// ── I18N ──────────────────────────────────────────────────────
+const I18N = {
+  vi:{
+    heroSub:'Thư giãn & Tái tạo năng lượng',heroTitle:'Khoảnh khắc<br><em>bình yên</em> của bạn',
+    heroDesc:'Trải nghiệm dịch vụ chăm sóc tóc và massage thư giãn đẳng cấp tại Willowy Spa.',
+    heroCta:'Đặt lịch ngay →',svcTitle:'Dịch vụ của chúng tôi',svcLink:'Xem tất cả →',
+    authSubtitle:'Đăng nhập để đặt lịch và nhận ưu đãi',
+    tabLogin:'Đăng nhập',tabRegister:'Đăng ký',
+    lbPhone:'Số điện thoại',lbPwd:'Mật khẩu',lbName:'Họ và tên',lbPhoneR:'Số điện thoại',
+    lbEmail:'Email (tùy chọn)',lbPwdR:'Mật khẩu',lbRef:'Mã giới thiệu',
+    btnLogin:'Đăng nhập',btnRegister:'Tạo tài khoản',
+    bookingTitle:'Đặt lịch hẹn',steps:['Dịch vụ','Kỹ thuật viên','Ngày & Giờ','Xác nhận'],
+    s1Label:'Chọn dịch vụ',s2Label:'Chọn kỹ thuật viên',s3DateLabel:'Chọn ngày',
+    s3SlotLabel:'Chọn giờ',s3NoteLabel:'Ghi chú (tùy chọn)',selectDateHint:'Vui lòng chọn ngày để xem giờ trống',
+    s4Title:'Xác nhận đặt lịch',btnBack:'← Quay lại',btnNext:'Tiếp theo →',btnConfirm:'✓ Xác nhận đặt lịch',
+    myBkTitle:'Lịch đặt của tôi',
+    navLogin:'Đăng nhập',navBook:'Đặt lịch',navProfile:'Tài khoản',navLogout:'Đăng xuất',
+    bnHome:'Trang chủ',bnBook:'Đặt lịch',bnBkgs:'Lịch hẹn',bnProf:'Tài khoản',
+    min:'phút',sum_service:'Dịch vụ',sum_tech:'Kỹ thuật viên',sum_date:'Ngày',sum_time:'Giờ',sum_price:'Giá',
+    cancelBtn:'Hủy',confirmCancel:'Bạn chắc chắn muốn hủy lịch này?',
+    referralTitle:'Mã giới thiệu của bạn',referralDesc:'Chia sẻ QR code để giới thiệu bạn bè',
+    referralCount:'Đã giới thiệu',totalVisit:'Tổng lượt',
+    noBookings:'Chưa có lịch đặt nào',noBookingsDesc:'Hãy đặt lịch dịch vụ đầu tiên!',
+    loading:'Đang tải...',saving:'Đang xử lý...',
+    errPhone:'Vui lòng nhập số điện thoại',errPwd:'Vui lòng nhập mật khẩu',
+    errName:'Vui lòng nhập tên',errPwd6:'Mật khẩu tối thiểu 6 ký tự',
+    errPhoneExist:'Số điện thoại đã tồn tại',errWrongPwd:'Sai mật khẩu',errNotFound:'Tài khoản không tồn tại',
+    errSlotTaken:'Giờ này đã được đặt',errPast:'Không thể đặt giờ đã qua',
+    successLogin:'Đăng nhập thành công!',successRegister:'Tạo tài khoản thành công!',
+    successBooking:'Đặt lịch thành công! 🎉',successCancel:'Đã hủy lịch',
+    needLogin:'Vui lòng đăng nhập để đặt lịch',noSlot:'Không có giờ trống cho ngày này',copyCode:'Đã sao chép mã!',
+  },
+  en:{
+    heroSub:'Relax & Recharge',heroTitle:'Your moment of<br><em>serenity</em>',
+    heroDesc:'Experience premium hair care and relaxing massage services at Willowy Spa.',
+    heroCta:'Book Now →',svcTitle:'Our Services',svcLink:'View all →',
+    authSubtitle:'Sign in to book and earn rewards',
+    tabLogin:'Sign In',tabRegister:'Register',
+    lbPhone:'Phone Number',lbPwd:'Password',lbName:'Full Name',lbPhoneR:'Phone Number',
+    lbEmail:'Email (optional)',lbPwdR:'Password',lbRef:'Referral Code',
+    btnLogin:'Sign In',btnRegister:'Create Account',
+    bookingTitle:'Book Appointment',steps:['Service','Technician','Date & Time','Confirm'],
+    s1Label:'Select a service',s2Label:'Choose a technician',s3DateLabel:'Select date',
+    s3SlotLabel:'Select time slot',s3NoteLabel:'Notes (optional)',selectDateHint:'Select a date to see available slots',
+    s4Title:'Confirm Booking',btnBack:'← Back',btnNext:'Next →',btnConfirm:'✓ Confirm Booking',
+    myBkTitle:'My Bookings',
+    navLogin:'Sign In',navBook:'Book',navProfile:'Account',navLogout:'Sign Out',
+    bnHome:'Home',bnBook:'Book',bnBkgs:'Bookings',bnProf:'Profile',
+    min:'min',sum_service:'Service',sum_tech:'Technician',sum_date:'Date',sum_time:'Time',sum_price:'Price',
+    cancelBtn:'Cancel',confirmCancel:'Cancel this booking?',
+    referralTitle:'Your Referral Code',referralDesc:'Share this QR to refer friends',
+    referralCount:'Referrals',totalVisit:'Total Visits',
+    noBookings:'No bookings yet',noBookingsDesc:'Book your first service today!',
+    loading:'Loading...',saving:'Processing...',
+    errPhone:'Please enter phone number',errPwd:'Please enter password',
+    errName:'Please enter your name',errPwd6:'Password must be 6+ characters',
+    errPhoneExist:'Phone already exists',errWrongPwd:'Wrong password',errNotFound:'Account not found',
+    errSlotTaken:'Slot is taken',errPast:'Cannot book in the past',
+    successLogin:'Signed in!',successRegister:'Account created!',
+    successBooking:'Booking confirmed! 🎉',successCancel:'Booking cancelled',
+    needLogin:'Please sign in to book',noSlot:'No slots available for this date',copyCode:'Copied!',
+  }
+};
+
+// ── STATE ─────────────────────────────────────────────────────
+let state = {
+  lang:'vi', customer:null, services:[], technicians:[],
+  booking:{serviceId:null,technicianId:null,date:null,startTime:null,endTime:null,note:''},
+  currentStep:1, currentPage:'home',
+  admin:{token:null, bookings:[], services:[], technicians:[], schedules:[]}
+};
+
+// ── UTILS ─────────────────────────────────────────────────────
+const t = k => I18N[state.lang][k] || k;
+const fmt = n => new Intl.NumberFormat('vi-VN').format(n) + ' ₫';
+const fmtDate = d => { if(!d)return''; const dt=new Date(d+'T00:00:00'); return state.lang==='vi'?dt.toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'}):dt.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); };
+const fmtDateShort = d => { if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString(state.lang==='vi'?'vi-VN':'en-US',{month:'short'})}; };
+
+let _loadingTimer=null;
+function showLoading(show,msg){
+  const el=document.getElementById('loadingOverlay');
+  document.getElementById('loadingText').textContent=msg||t('loading');
+  el.classList.toggle('show',show);
+  if(show){clearTimeout(_loadingTimer);_loadingTimer=setTimeout(()=>{el.classList.remove('show');showToast('Kết nối quá chậm. Thử lại!','error');},15000);}
+  else clearTimeout(_loadingTimer);
+}
+
+function showToast(msg,type='',dur=3000){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='show'+(type?' '+type:'');
+  setTimeout(()=>el.className='',dur);
+}
+
+async function api(action,payload={}){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),12000);
+  try{
+    const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,payload}),signal:controller.signal});
+    clearTimeout(timer); return res.json();
+  }catch(e){clearTimeout(timer);return{success:false,error:e.name==='AbortError'?'timeout':'network_error'};}
+}
+
+// ── LANG ──────────────────────────────────────────────────────
+function setLang(lang){
+  state.lang=lang;
+  document.getElementById('btnVI').classList.toggle('active',lang==='vi');
+  document.getElementById('btnEN').classList.toggle('active',lang==='en');
+  renderAll();
+}
+
+function renderAll(){
+  renderNav(); renderAuthPage(); renderBookingLabels(); renderBottomNav();
+  if(state.currentPage==='home') renderHomePage();
+  if(state.currentPage==='bookings') loadBookings();
+  if(state.currentPage==='profile') renderProfile();
+}
+
+// ── NAV ───────────────────────────────────────────────────────
+function renderNav(){
+  ['navLogin','navBook','navProfile','navLogout'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=t(id);
+  });
+  const li=document.getElementById('navLogin'),lb=document.getElementById('navBook'),lp=document.getElementById('navProfile'),ll=document.getElementById('navLogout');
+  if(state.customer){li.style.display='none';lb.style.display='';lp.style.display='';ll.style.display='';}
+  else{li.style.display='';lb.style.display='none';lp.style.display='none';ll.style.display='none';}
+}
+function renderBottomNav(){
+  ['Home','Book','Bkgs','Prof'].forEach(k=>{ const el=document.getElementById('bn'+k+'Label'); if(el) el.textContent=t('bn'+k); });
+}
+
+// ── PAGES ─────────────────────────────────────────────────────
+function showPage(name){
+  if((name==='booking'||name==='bookings'||name==='profile')&&!state.customer){showToast(t('needLogin'));showPage('auth');return;}
+  state.currentPage=name;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg=document.getElementById('page'+name.charAt(0).toUpperCase()+name.slice(1));
+  if(pg) pg.classList.add('active');
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  const map={home:'bnHome',booking:'bnBook',bookings:'bnBkgs',profile:'bnProf'};
+  if(map[name]){const b=document.getElementById(map[name]);if(b)b.classList.add('active');}
+  if(name==='booking'){resetBooking();loadServices();}
+  if(name==='bookings') loadBookings();
+  if(name==='profile') renderProfile();
+  if(name==='home') renderHomePage();
+  if(name==='admin'){
+    document.getElementById('adminLoginWrap').style.display=state.admin.token?'none':'flex';
+    document.getElementById('adminDashboard').style.display=state.admin.token?'flex':'none';
+    if(state.admin.token) loadAdminBookings();
+  }
+}
+function goHome(){showPage('home');}
+
+// ── HOME ──────────────────────────────────────────────────────
+async function renderHomePage(){
+  ['heroSub','heroCta','svcLink'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t(id);});
+  document.getElementById('heroTitle').innerHTML=t('heroTitle');
+  document.getElementById('heroDesc').textContent=t('heroDesc');
+  document.getElementById('svcTitle').textContent=t('svcTitle');
+  const grid=document.getElementById('homeServices');
+  const icons={'SVC_001':'🪷','SVC_002':'💆','SVC_003':'💪','SVC_004':'✨','SVC_005':'🌿'};
+  if(!state.services.length){
+    grid.innerHTML=Array(4).fill(0).map(()=>`<div class="svc-card" style="pointer-events:none"><div class="svc-icon skel" style="background:var(--stone)"></div><div class="skel" style="height:14px;width:70%;margin-bottom:8px"></div><div class="skel" style="height:11px;width:40%"></div></div>`).join('');
+    const res=await api('getServices');
+    if(res.success) state.services=res.services;
+  }
+  if(!state.services.length){grid.innerHTML=`<p style="color:var(--sub);grid-column:1/-1">Không thể tải dịch vụ.</p>`;return;}
+  grid.innerHTML=state.services.slice(0,4).map(s=>`
+    <div class="svc-card" onclick="quickBook('${s.serviceId}')">
+      <div class="svc-icon">${icons[s.serviceId]||'🌸'}</div>
+      <div class="svc-name">${state.lang==='vi'?s.nameVi:s.nameEn}</div>
+      <div class="svc-dur">${s.duration} ${t('min')}</div>
+      <div class="svc-price">${fmt(s.price)}</div>
+    </div>`).join('');
+}
+
+function quickBook(svcId){if(!state.customer){showPage('auth');return;}state.booking.serviceId=svcId;showPage('booking');goStep(2);}
+
+// ── AUTH ──────────────────────────────────────────────────────
+function renderAuthPage(){
+  const ids=['authSubtitle','tabLogin','tabRegister','lbPhone','lbPwd','lbName','lbPhoneR','lbEmail','lbPwdR','lbRef','btnLogin','btnRegister'];
+  ids.forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t(id);});
+}
+function switchAuthTab(tab){
+  document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
+  document.getElementById('registerForm').style.display=tab==='register'?'block':'none';
+  document.querySelectorAll('.tabs .tab').forEach((b,i)=>b.classList.toggle('active',(tab==='login'&&i===0)||(tab==='register'&&i===1)));
+}
+
+async function doLogin(){
+  const phone=document.getElementById('loginPhone').value.trim();
+  const password=document.getElementById('loginPwd').value;
+  if(!phone){showToast(t('errPhone'),'error');return;}
+  if(!password){showToast(t('errPwd'),'error');return;}
+  showLoading(true,t('saving'));
+  let res; try{res=await api('login',{phone,password});}catch(e){res={success:false,error:'network_error'};}
+  showLoading(false);
+  if(!res.success){
+    const errs={wrong_password:t('errWrongPwd'),not_found:t('errNotFound'),network_error:'Lỗi kết nối!',timeout:'Quá thời gian!'};
+    showToast(errs[res.error]||res.error,'error');return;
+  }
+  state.customer=res.customer; localStorage.setItem('willowyCustomer',JSON.stringify(res.customer));
+  showToast(t('successLogin'),'success'); renderNav(); showPage('home');
+}
+
+async function doRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const phone=document.getElementById('regPhone').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const password=document.getElementById('regPwd').value;
+  const referralCode=document.getElementById('regRef').value.trim();
+  if(!name){showToast(t('errName'),'error');return;}
+  if(!phone){showToast(t('errPhone'),'error');return;}
+  if(password.length<6){showToast(t('errPwd6'),'error');return;}
+  showLoading(true,t('saving'));
+  let res; try{res=await api('register',{name,phone,email,password,referralCode});}catch(e){res={success:false,error:'network_error'};}
+  showLoading(false);
+  if(!res||!res.success){
+    const errs={phone_exists:t('errPhoneExist'),network_error:'Lỗi kết nối!',timeout:'Quá thời gian!'};
+    showToast(errs[res&&res.error]||'Đã xảy ra lỗi!','error');return;
+  }
+  state.customer=res.customer; localStorage.setItem('willowyCustomer',JSON.stringify(res.customer));
+  showToast(t('successRegister'),'success'); renderNav(); showPage('home');
+}
+
+function logout(){state.customer=null;localStorage.removeItem('willowyCustomer');renderNav();showPage('home');showToast('Đã đăng xuất');}
+
+// ── BOOKING WIZARD ────────────────────────────────────────────
+function renderBookingLabels(){
+  ['bookingTitle','s1Label','s2Label','s3DateLabel','s3SlotLabel','s3NoteLabel','selectDateHint','s4Title'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t(id);});
+  ['btnBack2','btnBack3','btnBack4'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t('btnBack');});
+  ['btnNext2','btnNext3'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t('btnNext');});
+  const bc=document.getElementById('btnConfirm');if(bc)bc.textContent=t('btnConfirm');
+  renderStepIndicator();
+}
+function renderStepIndicator(){
+  const steps=t('steps');
+  const el=document.getElementById('stepIndicator');
+  if(!el)return;
+  el.innerHTML=steps.map((s,i)=>{const n=i+1;const cls=n<state.currentStep?'done':n===state.currentStep?'active':'';return`<div class="step ${cls}"><span class="step-num">${n<state.currentStep?'✓':n}</span>${s}</div>`;}).join('');
+}
+function resetBooking(){
+  state.booking={serviceId:null,technicianId:null,date:null,startTime:null,endTime:null,note:''};
+  state.currentStep=1;
+  document.querySelectorAll('.step-content').forEach(s=>s.classList.remove('active'));
+  const s1=document.getElementById('step1');if(s1)s1.classList.add('active');
+  renderBookingLabels();
+}
+
+async function loadServices(){
+  if(!state.services.length){const res=await api('getServices');if(res.success)state.services=res.services;}
+  const icons={'SVC_001':'🪷','SVC_002':'💆','SVC_003':'💪','SVC_004':'✨','SVC_005':'🌿'};
+  const el=document.getElementById('serviceList');if(!el)return;
+  el.innerHTML=state.services.map(s=>`
+    <div class="svc-card" id="scard_${s.serviceId}" onclick="selectService('${s.serviceId}')">
+      <div class="svc-icon">${icons[s.serviceId]||'🌸'}</div>
+      <div class="svc-name">${state.lang==='vi'?s.nameVi:s.nameEn}</div>
+      <div class="svc-dur">${s.duration} ${t('min')}</div>
+      <div class="svc-price">${fmt(s.price)}</div>
+    </div>`).join('');
+  if(state.booking.serviceId){const el2=document.getElementById('scard_'+state.booking.serviceId);if(el2)el2.style.borderColor='var(--gold)';}
+}
+
+async function selectService(id){
+  state.booking.serviceId=id;state.booking.technicianId=null;state.booking.startTime=null;
+  document.querySelectorAll('.svc-card').forEach(c=>c.style.borderColor='');
+  const el=document.getElementById('scard_'+id);if(el)el.style.borderColor='var(--gold)';
+  await loadTechnicians(id);goStep(2);
+}
+
+async function loadTechnicians(serviceId){
+  showLoading(true);
+  const res=await api('getTechnicians',{serviceId});
+  showLoading(false);
+  if(res.success) state.technicians=res.technicians;
+  renderTechnicians();
+}
+
+function renderTechnicians(){
+  const el=document.getElementById('techList');if(!el)return;
+  el.innerHTML=state.technicians.map(t2=>{
+    const nm=t2[state.lang==='vi'?'nameVi':'nameEn']||'';
+    const initials=nm.split(' ').map(w=>w[0]).join('').slice(-2).toUpperCase();
+    return`<div class="tech-card ${state.booking.technicianId===t2.technicianId?'selected':''}" onclick="selectTech('${t2.technicianId}',this)">
+      <div class="tech-avatar">${initials}</div>
+      <div class="tech-name">${nm}</div>
+    </div>`;
+  }).join('');
+  const bn=document.getElementById('btnNext2');if(bn)bn.disabled=!state.booking.technicianId;
+}
+
+function selectTech(id,el){
+  state.booking.technicianId=id;
+  document.querySelectorAll('.tech-card').forEach(c=>c.classList.remove('selected'));
+  if(el)el.classList.add('selected');
+  const bn=document.getElementById('btnNext2');if(bn)bn.disabled=false;
+}
+
+function goStep(n){
+  state.currentStep=n;
+  document.querySelectorAll('.step-content').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById('step'+n);if(el)el.classList.add('active');
+  renderStepIndicator();
+  if(n===4)renderSummary();
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const di=document.getElementById('bookDate');
+  if(di){
+    const today=new Date().toISOString().split('T')[0];
+    di.min=today;di.value=today;
+    di.addEventListener('change',async()=>{
+      state.booking.date=di.value;state.booking.startTime=null;
+      const bn=document.getElementById('btnNext3');if(bn)bn.disabled=true;
+      await loadSlots();
+    });
+  }
+});
+
+async function loadSlots(){
+  if(!state.booking.technicianId||!state.booking.date)return;
+  showLoading(true);
+  const res=await api('getAvailableSlots',{technicianId:state.booking.technicianId,date:state.booking.date,serviceId:state.booking.serviceId});
+  showLoading(false);
+  const container=document.getElementById('slotsContainer');if(!container)return;
+  if(!res.success||!res.slots.length){container.innerHTML=`<p style="color:var(--sub);font-size:12px">${t('noSlot')}</p>`;return;}
+  container.innerHTML=`<div class="slots-grid">${res.slots.map(s=>{
+    let cls='slot';
+    if(s.isPast) cls+=' past';
+    else if(s.isBooked) cls+=' booked';
+    else if(state.booking.startTime===s.start) cls+=' selected';
+    const clickable=s.available?`selectSlot('${s.start}','${s.end}',this)`:'';
+    return`<div class="${cls}" onclick="${clickable}">${s.start}</div>`;
+  }).join('')}</div>`;
+}
+
+function selectSlot(start,end,el){
+  state.booking.startTime=start;state.booking.endTime=end;
+  document.querySelectorAll('.slot').forEach(s=>s.classList.remove('selected'));
+  if(el)el.classList.add('selected');
+  const bn=document.getElementById('btnNext3');if(bn)bn.disabled=false;
+}
+
+function renderSummary(){
+  const svc=state.services.find(s=>s.serviceId===state.booking.serviceId)||{};
+  const tech=state.technicians.find(t=>t.technicianId===state.booking.technicianId)||{};
+  const el=document.getElementById('bookingSummary');if(!el)return;
+  el.innerHTML=`
+    <div class="summary-row"><span class="summary-label">${t('sum_service')}</span><span class="summary-val">${state.lang==='vi'?svc.nameVi:svc.nameEn}</span></div>
+    <div class="summary-row"><span class="summary-label">${t('sum_tech')}</span><span class="summary-val">${state.lang==='vi'?tech.nameVi:tech.nameEn}</span></div>
+    <div class="summary-row"><span class="summary-label">${t('sum_date')}</span><span class="summary-val">${fmtDate(state.booking.date)}</span></div>
+    <div class="summary-row"><span class="summary-label">${t('sum_time')}</span><span class="summary-val">${state.booking.startTime} – ${state.booking.endTime}</span></div>
+    <div class="summary-row"><span class="summary-label">${t('sum_price')}</span><span class="summary-val">${fmt(svc.price)}</span></div>`;
+  const bn=document.getElementById('bookNote');if(bn)state.booking.note=bn.value;
+}
+
+async function confirmBooking(){
+  if(!state.customer){showPage('auth');return;}
+  showLoading(true,t('saving'));
+  let res;
+  try{res=await api('createBooking',{customerId:state.customer.customerId,serviceId:state.booking.serviceId,technicianId:state.booking.technicianId,bookingDate:state.booking.date,startTime:state.booking.startTime,note:state.booking.note});}
+  catch(e){res={success:false,error:'network_error'};}
+  showLoading(false);
+  if(!res||!res.success){
+    const errs={slot_taken:t('errSlotTaken'),past_time:t('errPast'),network_error:'Lỗi kết nối!'};
+    showToast(errs[res&&res.error]||'Đặt lịch thất bại!','error');return;
+  }
+  showToast(t('successBooking'),'success',4000);showPage('bookings');
+}
+
+// ── MY BOOKINGS ───────────────────────────────────────────────
+async function loadBookings(){
+  const el=document.getElementById('myBkTitle');if(el)el.textContent=t('myBkTitle');
+  if(!state.customer)return;
+  showLoading(true);
+  const res=await api('getCustomerBookings',{customerId:state.customer.customerId});
+  showLoading(false);
+  const list=document.getElementById('bookingsList');if(!list)return;
+  if(!res.success){list.innerHTML=`<p style="color:var(--sub);text-align:center;padding:20px">Không thể tải lịch.</p>`;return;}
+  if(!res.bookings.length){list.innerHTML=`<div class="empty"><div class="empty-icon">📅</div><h4>${t('noBookings')}</h4><p>${t('noBookingsDesc')}</p><br><button class="btn btn-primary" onclick="showPage('booking')">${t('heroCta')}</button></div>`;return;}
+  list.innerHTML=res.bookings.map(b=>{
+    const d=fmtDateShort(b.bookingDate);
+    const canCancel=b.status==='confirmed'&&new Date(b.bookingDate+'T'+(b.startTime||'00:00'))>new Date();
+    return`<div class="booking-item">
+      <div class="booking-date"><div class="day">${d.day}</div><div class="mon">${d.mon}</div></div>
+      <div class="booking-info">
+        <h4>${state.lang==='vi'?b.service.nameVi:b.service.nameEn}</h4>
+        <p>${state.lang==='vi'?b.technician.nameVi:b.technician.nameEn} · ${b.startTime} – ${b.endTime}</p>
+        <span class="status-badge status-${b.status}">${b.status==='confirmed'?(state.lang==='vi'?'Đã xác nhận':'Confirmed'):b.status==='cancelled'?(state.lang==='vi'?'Đã hủy':'Cancelled'):'Chờ'}</span>
+      </div>
+      ${canCancel?`<button class="btn btn-danger" onclick="cancelBooking('${b.bookingId}')">${t('cancelBtn')}</button>`:'<div></div>'}
+    </div>`;
+  }).join('');
+}
+
+async function cancelBooking(bookingId){
+  if(!confirm(t('confirmCancel')))return;
+  showLoading(true);
+  const res=await api('cancelBooking',{bookingId,customerId:state.customer.customerId});
+  showLoading(false);
+  if(res.success){showToast(t('successCancel'),'success');loadBookings();}
+}
+
+// ── PROFILE ───────────────────────────────────────────────────
+async function renderProfile(){
+  if(!state.customer)return;
+  const c=state.customer;
+  const initials=c.name.split(' ').map(w=>w[0]).join('').slice(-2).toUpperCase();
+  const pc=document.getElementById('profileCard');if(!pc)return;
+  pc.innerHTML=`<div class="profile-header"><div class="avatar">${initials}</div><div><h3 style="font-size:18px;font-weight:700;color:var(--deep)">${c.name}</h3><p style="color:var(--sub);font-size:12px">${c.phone}${c.email?' · '+c.email:''}</p></div></div>
+    <div class="stat-chips">
+      <div class="stat-chip"><div class="val">${c.totalVisits||0}</div><div class="lbl">${t('totalVisit')}</div></div>
+      <div class="stat-chip"><div class="val">${c.referralCount||0}</div><div class="lbl">${t('referralCount')}</div></div>
+    </div>`;
+  showLoading(true);
+  const res=await api('getReferralInfo',{customerId:c.customerId});
+  showLoading(false);
+  const rc=document.getElementById('referralCard');if(!rc)return;
+  if(res.success){
+    const qrUrl=window.location.href.split('?')[0]+'?ref='+res.referralCode;
+    rc.innerHTML=`<div class="qr-wrap">
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">${t('referralTitle')}</h3>
+      <p style="color:var(--sub);font-size:12px;margin-bottom:18px">${t('referralDesc')}</p>
+      <div class="qr-box">${generateQRSVG(qrUrl)}</div>
+      <div class="qr-code-text" onclick="copyRef('${res.referralCode}')">${res.referralCode}</div>
+      <p style="font-size:11px;color:var(--sub);margin-top:4px">Nhấn để sao chép</p>
+      <div class="stat-chips"><div class="stat-chip"><div class="val">${res.referralCount}</div><div class="lbl">${t('referralCount')}</div></div></div>
+    </div>`;
+  }
+}
+
+function copyRef(code){navigator.clipboard.writeText(code).then(()=>showToast(t('copyCode'),'success'));}
+
+function generateQRSVG(text){
+  const size=21,cell=Math.floor(144/size);let cells='',hash=0;
+  for(let i=0;i<text.length;i++){hash=((hash<<5)-hash)+text.charCodeAt(i);hash=hash&hash;}
+  const rng=s=>{s=Math.sin(s+hash)*10000;return s-Math.floor(s);};
+  const finder=(ox,oy)=>{for(let r=0;r<7;r++)for(let c=0;c<7;c++){const iB=r===0||r===6||c===0||c===6,iI=r>=2&&r<=4&&c>=2&&c<=4;if(iB||iI)cells+=`<rect x="${(ox+c)*cell}" y="${(oy+r)*cell}" width="${cell}" height="${cell}" fill="var(--deep)"/>`;}};
+  finder(0,0);finder(size-7,0);finder(0,size-7);
+  for(let r=0;r<size;r++)for(let c=0;c<size;c++){
+    if((r<8&&c<8)||(r<8&&c>=size-8)||(r>=size-8&&c<8))continue;
+    if(rng(r*size+c)>0.55)cells+=`<rect x="${c*cell}" y="${r*cell}" width="${cell-1}" height="${cell-1}" fill="var(--deep)" rx="1"/>`;
+  }
+  return`<svg viewBox="0 0 ${size*cell} ${size*cell}" xmlns="http://www.w3.org/2000/svg" class="qr-svg">${cells}</svg>`;
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────
+async function doAdminLogin(){
+  const username=document.getElementById('adminUser').value.trim();
+  const password=document.getElementById('adminPass').value;
+  if(!username||!password){showToast('Nhập đầy đủ thông tin','error');return;}
+  showLoading(true,'Đang xác thực...');
+  let res;try{res=await api('adminLogin',{username,password});}catch(e){res={success:false};}
+  showLoading(false);
+  if(!res.success){showToast('Sai tài khoản hoặc mật khẩu','error');return;}
+  state.admin.token=res.token;
+  document.getElementById('adminLoginWrap').style.display='none';
+  document.getElementById('adminDashboard').style.display='flex';
+  loadAdminBookings();
+}
+
+function adminLogout(){
+  state.admin={token:null,bookings:[],services:[],technicians:[],schedules:[]};
+  document.getElementById('adminLoginWrap').style.display='flex';
+  document.getElementById('adminDashboard').style.display='none';
+}
+
+function switchAdminPanel(name){
+  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.admin-nav-item').forEach(n=>n.classList.remove('active'));
+  const panel=document.getElementById('panel-'+name);if(panel)panel.classList.add('active');
+  const nav=document.getElementById('anav-'+name);if(nav)nav.classList.add('active');
+  if(name==='bookings')loadAdminBookings();
+  if(name==='services')loadAdminServices();
+  if(name==='technicians')loadAdminTechnicians();
+  if(name==='schedules')loadAdminSchedules();
+}
+
+// ── ADMIN: BOOKINGS ───────────────────────────────────────────
+async function loadAdminBookings(){
+  const body=document.getElementById('adminBookingsBody');if(!body)return;
+  body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:20px"><div class="spinner" style="margin:0 auto"></div></td></tr>`;
+  const res=await api('adminGetAllBookings',{adminToken:state.admin.token});
+  if(!res.success){body.innerHTML=`<tr><td colspan="6" style="color:#c62828;padding:12px">${res.error}</td></tr>`;return;}
+  state.admin.bookings=res.bookings;
+  renderAdminStats(res.bookings);
+  renderAdminBookingsTable(res.bookings);
+}
+
+function renderAdminStats(bookings){
+  const el=document.getElementById('adminStats');if(!el)return;
+  const total=bookings.length;
+  const confirmed=bookings.filter(b=>b.status==='confirmed').length;
+  const cancelled=bookings.filter(b=>b.status==='cancelled').length;
+  const today=new Date().toISOString().split('T')[0];
+  const todayCount=bookings.filter(b=>b.bookingDate===today).length;
+  el.innerHTML=[
+    {val:total,lbl:'Tổng lịch đặt'},{val:confirmed,lbl:'Đã xác nhận'},
+    {val:cancelled,lbl:'Đã hủy'},{val:todayCount,lbl:'Hôm nay'},
+  ].map(s=>`<div class="admin-stat-card"><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`).join('');
+}
+
+function renderAdminBookingsTable(bookings){
+  const body=document.getElementById('adminBookingsBody');if(!body)return;
+  if(!bookings.length){body.innerHTML=`<tr><td colspan="6" class="empty" style="padding:24px;text-align:center;color:var(--sub)">Không có lịch đặt nào</td></tr>`;return;}
+  body.innerHTML=bookings.map(b=>`<tr>
+    <td><strong>${b.customer&&b.customer.name||'—'}</strong><br><span style="color:var(--sub)">${b.customer&&b.customer.phone||''}</span></td>
+    <td>${b.service&&b.service.nameVi||b.serviceId}</td>
+    <td>${b.technician&&b.technician.nameVi||b.technicianId}</td>
+    <td>${b.bookingDate}</td>
+    <td>${b.startTime} – ${b.endTime}</td>
+    <td><span class="status-badge status-${b.status}">${b.status==='confirmed'?'Xác nhận':b.status==='cancelled'?'Đã hủy':'Chờ'}</span></td>
+  </tr>`).join('');
+}
+
+function filterBookings(){
+  const status=document.getElementById('filterStatus').value;
+  const date=document.getElementById('filterDate').value;
+  const search=document.getElementById('filterSearch').value.toLowerCase();
+  let filtered=state.admin.bookings;
+  if(status) filtered=filtered.filter(b=>b.status===status);
+  if(date) filtered=filtered.filter(b=>b.bookingDate===date);
+  if(search) filtered=filtered.filter(b=>(b.customer&&b.customer.name||'').toLowerCase().includes(search)||(b.customer&&b.customer.phone||'').includes(search));
+  renderAdminBookingsTable(filtered);
+}
+
+// ── ADMIN: SERVICES ───────────────────────────────────────────
+async function loadAdminServices(){
+  const body=document.getElementById('adminServicesBody');if(!body)return;
+  body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:20px"><div class="spinner" style="margin:0 auto"></div></td></tr>`;
+  const res=await api('adminGetServices',{adminToken:state.admin.token});
+  if(!res.success){body.innerHTML=`<tr><td colspan="6" style="color:#c62828;padding:12px">${res.error}</td></tr>`;return;}
+  state.admin.services=res.services;
+  body.innerHTML=res.services.map(s=>`<tr>
+    <td><strong>${s.nameVi}</strong></td><td>${s.nameEn}</td>
+    <td>${s.duration} phút</td><td>${fmt(s.price)}</td>
+    <td><span class="badge ${isActiveFE(s.isActive)?'badge-active':'badge-inactive'}">${isActiveFE(s.isActive)?'Hoạt động':'Ẩn'}</span></td>
+    <td class="admin-actions">
+      <button class="btn btn-outline btn-sm" onclick="openServiceModal('${s.serviceId}')">Sửa</button>
+      <button class="btn btn-danger" onclick="deleteService('${s.serviceId}','${s.nameVi}')">Xóa</button>
+    </td>
+  </tr>`).join('');
+}
+
+function isActiveFE(v){return v===true||String(v).toUpperCase()==='TRUE'||String(v)==='1';}
+
+function openServiceModal(serviceId){
+  const modal=document.getElementById('modalService');
+  if(serviceId){
+    const s=state.admin.services.find(x=>x.serviceId===serviceId)||{};
+    document.getElementById('modalSvcTitle').textContent='Sửa dịch vụ';
+    document.getElementById('svcId').value=s.serviceId||'';
+    document.getElementById('svcNameVi').value=s.nameVi||'';
+    document.getElementById('svcNameEn').value=s.nameEn||'';
+    document.getElementById('svcDuration').value=s.duration||'';
+    document.getElementById('svcPrice').value=s.price||'';
+    document.getElementById('svcDesc').value=s.description||'';
+    document.getElementById('svcActive').checked=isActiveFE(s.isActive);
+  } else {
+    document.getElementById('modalSvcTitle').textContent='Thêm dịch vụ';
+    ['svcId','svcNameVi','svcNameEn','svcDuration','svcPrice','svcDesc'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('svcActive').checked=true;
+  }
+  modal.classList.add('show');
+}
+
+async function saveService(){
+  const service={
+    serviceId:document.getElementById('svcId').value||'',
+    nameVi:document.getElementById('svcNameVi').value.trim(),
+    nameEn:document.getElementById('svcNameEn').value.trim(),
+    duration:parseInt(document.getElementById('svcDuration').value)||0,
+    price:parseInt(document.getElementById('svcPrice').value)||0,
+    description:document.getElementById('svcDesc').value.trim(),
+    isActive:document.getElementById('svcActive').checked
+  };
+  if(!service.nameVi){showToast('Nhập tên dịch vụ (VI)','error');return;}
+  showLoading(true,'Đang lưu...');
+  const res=await api('adminSaveService',{adminToken:state.admin.token,service});
+  showLoading(false);
+  if(res.success){showToast('Đã lưu dịch vụ','success');closeModal('modalService');loadAdminServices();state.services=[];}
+  else showToast(res.error,'error');
+}
+
+async function deleteService(serviceId,name){
+  if(!confirm(`Xóa dịch vụ "${name}"?`))return;
+  showLoading(true);
+  const res=await api('adminDeleteService',{adminToken:state.admin.token,serviceId});
+  showLoading(false);
+  if(res.success){showToast('Đã xóa','success');loadAdminServices();state.services=[];}
+  else showToast(res.error,'error');
+}
+
+// ── ADMIN: TECHNICIANS ────────────────────────────────────────
+async function loadAdminTechnicians(){
+  const body=document.getElementById('adminTechsBody');if(!body)return;
+  body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:20px"><div class="spinner" style="margin:0 auto"></div></td></tr>`;
+  const res=await api('adminGetTechnicians',{adminToken:state.admin.token});
+  if(!res.success){body.innerHTML=`<tr><td colspan="6" style="color:#c62828;padding:12px">${res.error}</td></tr>`;return;}
+  state.admin.technicians=res.technicians;
+  // Populate schedule tech filter
+  const tf=document.getElementById('filterSchTech');
+  if(tf){tf.innerHTML='<option value="">Tất cả KTV</option>'+res.technicians.map(t=>`<option value="${t.technicianId}">${t.nameVi}</option>`).join('');}
+  body.innerHTML=res.technicians.map(t=>`<tr>
+    <td><strong>${t.nameVi}</strong></td><td>${t.nameEn}</td>
+    <td>${t.phone}</td><td style="font-size:11px;color:var(--sub)">${t.specialties||'—'}</td>
+    <td><span class="badge ${isActiveFE(t.isActive)?'badge-active':'badge-inactive'}">${isActiveFE(t.isActive)?'Hoạt động':'Ẩn'}</span></td>
+    <td class="admin-actions">
+      <button class="btn btn-outline btn-sm" onclick="openTechModal('${t.technicianId}')">Sửa</button>
+      <button class="btn btn-danger" onclick="deleteTech('${t.technicianId}','${t.nameVi}')">Xóa</button>
+    </td>
+  </tr>`).join('');
+}
+
+function openTechModal(techId){
+  const modal=document.getElementById('modalTech');
+  if(techId){
+    const t2=state.admin.technicians.find(x=>x.technicianId===techId)||{};
+    document.getElementById('modalTechTitle').textContent='Sửa kỹ thuật viên';
+    document.getElementById('techId').value=t2.technicianId||'';
+    document.getElementById('techNameVi').value=t2.nameVi||'';
+    document.getElementById('techNameEn').value=t2.nameEn||'';
+    document.getElementById('techPhone').value=t2.phone||'';
+    document.getElementById('techSpecialties').value=t2.specialties||'';
+    document.getElementById('techActive').checked=isActiveFE(t2.isActive);
+  } else {
+    document.getElementById('modalTechTitle').textContent='Thêm kỹ thuật viên';
+    ['techId','techNameVi','techNameEn','techPhone','techSpecialties'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('techActive').checked=true;
+  }
+  modal.classList.add('show');
+}
+
+async function saveTechnician(){
+  const technician={
+    technicianId:document.getElementById('techId').value||'',
+    nameVi:document.getElementById('techNameVi').value.trim(),
+    nameEn:document.getElementById('techNameEn').value.trim(),
+    phone:document.getElementById('techPhone').value.trim(),
+    specialties:document.getElementById('techSpecialties').value.trim(),
+    isActive:document.getElementById('techActive').checked
+  };
+  if(!technician.nameVi){showToast('Nhập tên KTV (VI)','error');return;}
+  showLoading(true,'Đang lưu...');
+  const res=await api('adminSaveTechnician',{adminToken:state.admin.token,technician});
+  showLoading(false);
+  if(res.success){showToast('Đã lưu','success');closeModal('modalTech');loadAdminTechnicians();state.technicians=[];}
+  else showToast(res.error,'error');
+}
+
+async function deleteTech(technicianId,name){
+  if(!confirm(`Xóa kỹ thuật viên "${name}"?`))return;
+  showLoading(true);
+  const res=await api('adminDeleteTechnician',{adminToken:state.admin.token,technicianId});
+  showLoading(false);
+  if(res.success){showToast('Đã xóa','success');loadAdminTechnicians();state.technicians=[];}
+  else showToast(res.error,'error');
+}
+
+// ── ADMIN: SCHEDULES ──────────────────────────────────────────
+async function loadAdminSchedules(){
+  const body=document.getElementById('adminSchedulesBody');if(!body)return;
+  body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:20px"><div class="spinner" style="margin:0 auto"></div></td></tr>`;
+  // Load technicians for filter if not loaded
+  if(!state.admin.technicians.length){
+    const tr=await api('adminGetTechnicians',{adminToken:state.admin.token});
+    if(tr.success){
+      state.admin.technicians=tr.technicians;
+      const tf=document.getElementById('filterSchTech');
+      if(tf){tf.innerHTML='<option value="">Tất cả KTV</option>'+tr.technicians.map(t=>`<option value="${t.technicianId}">${t.nameVi}</option>`).join('');}
+    }
+  }
+  const res=await api('adminGetSchedules',{adminToken:state.admin.token});
+  if(!res.success){body.innerHTML=`<tr><td colspan="6" style="color:#c62828;padding:12px">${res.error}</td></tr>`;return;}
+  state.admin.schedules=res.schedules;
+  renderAdminSchedulesTable(res.schedules);
+}
+
+function renderAdminSchedulesTable(schedules){
+  const body=document.getElementById('adminSchedulesBody');if(!body)return;
+  if(!schedules.length){body.innerHTML=`<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--sub)">Chưa có lịch làm việc</td></tr>`;return;}
+  body.innerHTML=schedules.map(s=>{
+    const tech=state.admin.technicians.find(t=>t.technicianId===s.technicianId)||{};
+    return`<tr>
+      <td>${s.date}</td>
+      <td>${tech.nameVi||s.technicianId}</td>
+      <td>${s.startTime}</td><td>${s.endTime}</td>
+      <td><span class="badge ${isActiveFE(s.isActive)?'badge-active':'badge-inactive'}">${isActiveFE(s.isActive)?'Hoạt động':'Tắt'}</span></td>
+      <td class="admin-actions">
+        <button class="btn btn-outline btn-sm" onclick="openScheduleModal('${s.scheduleId}')">Sửa</button>
+        <button class="btn btn-danger" onclick="deleteSchedule('${s.scheduleId}')">Xóa</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterSchedules(){
+  const date=document.getElementById('filterSchDate').value;
+  const tech=document.getElementById('filterSchTech').value;
+  let filtered=state.admin.schedules;
+  if(date) filtered=filtered.filter(s=>s.date===date);
+  if(tech) filtered=filtered.filter(s=>s.technicianId===tech);
+  renderAdminSchedulesTable(filtered);
+}
+
+function openScheduleModal(scheduleId){
+  const modal=document.getElementById('modalSchedule');
+  // Populate tech dropdown
+  const sel=document.getElementById('schTech');
+  sel.innerHTML=state.admin.technicians.map(t=>`<option value="${t.technicianId}">${t.nameVi}</option>`).join('');
+  if(scheduleId){
+    const s=state.admin.schedules.find(x=>x.scheduleId===scheduleId)||{};
+    document.getElementById('schId').value=s.scheduleId||'';
+    sel.value=s.technicianId||'';
+    document.getElementById('schDate').value=s.date||'';
+    document.getElementById('schStart').value=s.startTime||'09:00';
+    document.getElementById('schEnd').value=s.endTime||'20:00';
+    document.getElementById('schActive').checked=isActiveFE(s.isActive);
+  } else {
+    document.getElementById('schId').value='';
+    document.getElementById('schDate').value='';
+    document.getElementById('schStart').value='09:00';
+    document.getElementById('schEnd').value='20:00';
+    document.getElementById('schActive').checked=true;
+  }
+  modal.classList.add('show');
+}
+
+async function saveSchedule(){
+  const schedule={
+    scheduleId:document.getElementById('schId').value||'',
+    technicianId:document.getElementById('schTech').value,
+    date:document.getElementById('schDate').value,
+    startTime:document.getElementById('schStart').value,
+    endTime:document.getElementById('schEnd').value,
+    isActive:document.getElementById('schActive').checked
+  };
+  if(!schedule.date||!schedule.technicianId){showToast('Chọn KTV và ngày','error');return;}
+  if(!schedule.startTime||!schedule.endTime){showToast('Nhập giờ làm việc','error');return;}
+  showLoading(true,'Đang lưu...');
+  const res=await api('adminSaveSchedule',{adminToken:state.admin.token,schedule});
+  showLoading(false);
+  if(res.success){showToast('Đã lưu lịch','success');closeModal('modalSchedule');loadAdminSchedules();}
+  else showToast(res.error,'error');
+}
+
+async function deleteSchedule(scheduleId){
+  if(!confirm('Xóa lịch này?'))return;
+  showLoading(true);
+  const res=await api('adminDeleteSchedule',{adminToken:state.admin.token,scheduleId});
+  showLoading(false);
+  if(res.success){showToast('Đã xóa','success');loadAdminSchedules();}
+  else showToast(res.error,'error');
+}
+
+// ── MODAL HELPERS ─────────────────────────────────────────────
+function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('show');});
+});
+
+// ── INIT ──────────────────────────────────────────────────────
+function init(){
+  // Support both: Vercel (window.location.search) and GAS iframe (__URL_PARAMS__)
+  const urlParams = new URLSearchParams(window.location.search);
+  const gasParams = window.__URL_PARAMS__ || {};
+  const getParam = k => urlParams.get(k) || gasParams[k] || '';
+
+  const ref = getParam('ref');
+  if(ref){
+    const el=document.getElementById('regRef');if(el)el.value=ref;
+    api('trackQRScan',{referralCode:ref});
+    switchAuthTab('register');showPage('auth');
+  }
+  // Admin shortcut ?admin=1
+  if(getParam('admin')==='1'){showPage('admin');return;}
+
+  const saved=localStorage.getItem('willowyCustomer');
+  if(saved){try{state.customer=JSON.parse(saved);}catch(e){}}
+
+  renderNav();renderAuthPage();renderBookingLabels();renderBottomNav();
+  showPage('home');
+}
+
+window.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

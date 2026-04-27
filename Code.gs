@@ -1,0 +1,424 @@
+// ============================================================
+// WILLOWY SPA - Google Apps Script Backend
+// ============================================================
+
+const CONFIG = {
+  SHEET_ID: '13Ud3Y5IiogcNMpoGw7irKLdgpOH4ANBJrYdF4f0Q7wg',
+  SHEETS: {
+    CUSTOMERS:   'Customers',
+    BOOKINGS:    'Bookings',
+    SERVICES:    'Services',
+    TECHNICIANS: 'Technicians',
+    REFERRALS:   'Referrals',
+    SCHEDULES:   'Schedules'
+  },
+  ADMIN: {
+    USERNAME: 'willowy_admin',
+    PASSWORD: 'adminadmin'
+  }
+};
+
+function doGet(e) {
+  var html = HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('Willowy Spa')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  // Inject URL params as global JS vars (iframe sandbox blocks window.location.search)
+  var params = (e && e.parameter) ? e.parameter : {};
+  html.append('<script>window.__URL_PARAMS__=' + JSON.stringify(params) + ';</script>');
+  return html;
+}
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
+    const payload = data.payload || {};
+    const handlers = {
+      'login': handleLogin, 'register': handleRegister, 'updateProfile': handleUpdateProfile,
+      'getServices': handleGetServices, 'getTechnicians': handleGetTechnicians,
+      'getAvailableSlots': handleGetAvailableSlots, 'createBooking': handleCreateBooking,
+      'getCustomerBookings': handleGetCustomerBookings, 'cancelBooking': handleCancelBooking,
+      'getReferralInfo': handleGetReferralInfo, 'trackQRScan': handleTrackQRScan,
+      'adminLogin': handleAdminLogin,
+      'adminGetAllBookings': handleAdminGetAllBookings,
+      'adminGetServices': handleAdminGetServices, 'adminSaveService': handleAdminSaveService, 'adminDeleteService': handleAdminDeleteService,
+      'adminGetTechnicians': handleAdminGetTechnicians, 'adminSaveTechnician': handleAdminSaveTechnician, 'adminDeleteTechnician': handleAdminDeleteTechnician,
+      'adminGetSchedules': handleAdminGetSchedules, 'adminSaveSchedule': handleAdminSaveSchedule, 'adminDeleteSchedule': handleAdminDeleteSchedule,
+    };
+    if (handlers[action]) {
+      return ContentService.createTextOutput(JSON.stringify(handlers[action](payload))).setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'unknown_action' })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function getSheet(name) {
+  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  const sheet = ss.getSheetByName(name);
+  if (!sheet) throw new Error('Sheet "' + name + '" không tồn tại.');
+  return sheet;
+}
+
+function getHeaders(sheet) {
+  const lc = sheet.getLastColumn();
+  if (lc < 1) return [];
+  return sheet.getRange(1, 1, 1, lc).getValues()[0].map(h => String(h).trim());
+}
+
+function sheetToObjects(sheet) {
+  const lr = sheet.getLastRow(), lc = sheet.getLastColumn();
+  if (lr < 2 || lc < 1) return [];
+  const headers = sheet.getRange(1, 1, 1, lc).getValues()[0].map(h => String(h).trim());
+  const rows = sheet.getRange(2, 1, lr - 1, lc).getValues();
+  return rows.map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
+    return obj;
+  }).filter(obj => Object.values(obj).some(v => v !== '' && v !== null));
+}
+
+function appendRow(sheet, headers, obj) {
+  sheet.appendRow(headers.map(h => (obj[h] !== undefined ? obj[h] : '')));
+}
+
+function updateRow(sheet, idx, headers, obj) {
+  sheet.getRange(idx + 2, 1, 1, headers.length).setValues([headers.map(h => (obj[h] !== undefined ? obj[h] : ''))]);
+}
+
+function deleteRow(sheet, idx) { sheet.deleteRow(idx + 2); }
+
+function generateId(prefix) {
+  return prefix + '_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 5).toUpperCase();
+}
+
+function isActive(v) { return v === true || String(v).toUpperCase().trim() === 'TRUE' || String(v).trim() === '1'; }
+
+function normalizeDate(v) {
+  if (!v) return '';
+  if (v instanceof Date) {
+    return v.getFullYear() + '-' + String(v.getMonth()+1).padStart(2,'0') + '-' + String(v.getDate()).padStart(2,'0');
+  }
+  return String(v).trim().substring(0, 10);
+}
+
+function normalizeTime(v) {
+  if (!v) return '';
+  if (v instanceof Date) return String(v.getHours()).padStart(2,'0') + ':' + String(v.getMinutes()).padStart(2,'0');
+  const s = String(v).trim();
+  if (s.length === 5) return s;
+  const parts = s.split(':');
+  return String(parseInt(parts[0]||0)).padStart(2,'0') + ':' + String(parseInt(parts[1]||0)).padStart(2,'0');
+}
+
+function timeToMinutes(t) {
+  if (!t) return 0;
+  const p = String(t).split(':');
+  return parseInt(p[0]||0)*60 + parseInt(p[1]||0);
+}
+
+function hashPassword(pw) {
+  let h = 0; const s = pw + 'WILLOWY_SPA_SALT_2024';
+  for (let i = 0; i < s.length; i++) { h = ((h<<5)-h)+s.charCodeAt(i); h=h&h; }
+  return Math.abs(h).toString(36).toUpperCase();
+}
+
+function sanitizeCustomer(c) { const {passwordHash, ...safe} = c; return safe; }
+
+function verifyAdmin(payload) {
+  return payload && payload.adminToken === CONFIG.ADMIN.USERNAME + ':' + hashPassword(CONFIG.ADMIN.PASSWORD);
+}
+
+// ── AUTH ─────────────────────────────────────────────────────
+function handleLogin(payload) {
+  const { phone, password } = payload;
+  if (!phone || !password) return { success: false, error: 'missing_fields' };
+  const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
+  const customer = customers.find(c => String(c.phone).trim() === String(phone).trim() && isActive(c.isActive));
+  if (!customer) return { success: false, error: 'not_found' };
+  if (customer.passwordHash !== hashPassword(password)) return { success: false, error: 'wrong_password' };
+  return { success: true, customer: sanitizeCustomer(customer) };
+}
+
+function handleRegister(payload) {
+  try {
+    const { phone, email, name, password, referralCode } = payload;
+    if (!phone || !name || !password) return { success: false, error: 'missing_fields' };
+    const sheet = getSheet(CONFIG.SHEETS.CUSTOMERS);
+    const customers = sheetToObjects(sheet);
+    const headers = getHeaders(sheet);
+    if (customers.find(c => String(c.phone).trim() === String(phone).trim())) return { success: false, error: 'phone_exists' };
+    const customerId = generateId('CUST');
+    const myReferralCode = 'REF_' + customerId.split('_')[1];
+    const now = new Date().toISOString();
+    let referredBy = '';
+    if (referralCode) {
+      const referrer = customers.find(c => c.referralCode === referralCode);
+      if (referrer) {
+        referredBy = referrer.customerId;
+        try {
+          const refSheet = getSheet(CONFIG.SHEETS.REFERRALS);
+          appendRow(refSheet, getHeaders(refSheet), { referralId: generateId('REF'), referrerId: referrer.customerId, referredId: customerId, qrCode: referralCode, scannedAt: now, registeredAt: now, status: 'registered' });
+          const ri = customers.findIndex(c => c.customerId === referrer.customerId);
+          if (ri !== -1) { customers[ri].referralCount = (parseInt(customers[ri].referralCount)||0)+1; updateRow(sheet, ri, headers, customers[ri]); }
+        } catch(e) {}
+      }
+    }
+    appendRow(sheet, headers, { customerId, phone: String(phone).trim(), email: email||'', name, passwordHash: hashPassword(password), referralCode: myReferralCode, referredBy, referralCount: 0, totalVisits: 0, createdAt: now, isActive: true });
+    return { success: true, customer: sanitizeCustomer({ customerId, phone, email: email||'', name, referralCode: myReferralCode, referredBy, referralCount: 0, totalVisits: 0, createdAt: now, isActive: true }), isFirstVisit: !!referredBy };
+  } catch(e) { return { success: false, error: 'register_failed: ' + e.message }; }
+}
+
+function handleUpdateProfile(payload) {
+  try {
+    const { customerId, name, email } = payload;
+    const sheet = getSheet(CONFIG.SHEETS.CUSTOMERS);
+    const customers = sheetToObjects(sheet);
+    const headers = getHeaders(sheet);
+    const idx = customers.findIndex(c => c.customerId === customerId);
+    if (idx === -1) return { success: false, error: 'not_found' };
+    if (name) customers[idx].name = name;
+    if (email !== undefined) customers[idx].email = email;
+    updateRow(sheet, idx, headers, customers[idx]);
+    return { success: true, customer: sanitizeCustomer(customers[idx]) };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// ── SERVICES ─────────────────────────────────────────────────
+function handleGetServices() {
+  try {
+    return { success: true, services: sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)).filter(s => isActive(s.isActive)) };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// ── TECHNICIANS ───────────────────────────────────────────────
+function handleGetTechnicians(payload) {
+  try {
+    const { serviceId } = payload||{};
+    let techs = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).filter(t => isActive(t.isActive));
+    if (serviceId) techs = techs.filter(t => t.specialties && String(t.specialties).split(',').map(s=>s.trim()).includes(serviceId));
+    return { success: true, technicians: techs };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+// ── BOOKING ───────────────────────────────────────────────────
+function handleGetAvailableSlots(payload) {
+  const { technicianId, date, serviceId } = payload;
+  if (!technicianId || !date) return { success: false, error: 'missing_fields' };
+  let duration = 60;
+  try { const svc = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)).find(s => s.serviceId === serviceId); if (svc) duration = parseInt(svc.duration)||60; } catch(e) {}
+  let existingBookings = [];
+  try {
+    existingBookings = sheetToObjects(getSheet(CONFIG.SHEETS.BOOKINGS)).filter(b =>
+      String(b.technicianId).trim() === technicianId && normalizeDate(b.bookingDate) === date && (b.status==='confirmed'||b.status==='pending')
+    );
+  } catch(e) {}
+  let techSchedule = null;
+  try {
+    const schedules = sheetToObjects(getSheet(CONFIG.SHEETS.SCHEDULES));
+    techSchedule = schedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === date && isActive(s.isActive));
+  } catch(e) {}
+  // Use default working hours if no specific schedule exists
+  var scheduleStart = techSchedule ? normalizeTime(techSchedule.startTime) : '08:00';
+  var scheduleEnd = techSchedule ? normalizeTime(techSchedule.endTime) : '20:00';
+  return { success: true, slots: generateTimeSlots(scheduleStart, scheduleEnd, duration, existingBookings, date) };
+}
+
+function generateTimeSlots(startTime, endTime, duration, bookings, date) {
+  if (!startTime || !endTime) return [];
+  const now = new Date();
+  const sm = timeToMinutes(startTime), em = timeToMinutes(endTime);
+  const slots = [];
+  for (let m = sm; m + duration <= em; m += 30) {
+    const s = String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+    const e2 = String(Math.floor((m+duration)/60)).padStart(2,'0')+':'+String((m+duration)%60).padStart(2,'0');
+    const isPast = new Date(date+'T'+s+':00') <= now;
+    const isBooked = bookings.some(b => { const bs=timeToMinutes(normalizeTime(b.startTime)), be=timeToMinutes(normalizeTime(b.endTime)); return !(m+duration<=bs||m>=be); });
+    slots.push({ start: s, end: e2, available: !isPast && !isBooked, isPast: isPast, isBooked: isBooked });
+  }
+  return slots;
+}
+
+function handleCreateBooking(payload) {
+  try {
+    const { customerId, serviceId, technicianId, bookingDate, startTime, note } = payload;
+    if (!customerId||!serviceId||!technicianId||!bookingDate||!startTime) return { success: false, error: 'missing_fields' };
+    const services = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES));
+    const svc = services.find(s => s.serviceId === serviceId);
+    if (!svc) return { success: false, error: 'service_not_found' };
+    const duration = parseInt(svc.duration)||60;
+    const em2 = timeToMinutes(startTime) + duration;
+    const endTime = String(Math.floor(em2/60)).padStart(2,'0')+':'+String(em2%60).padStart(2,'0');
+    if (new Date(bookingDate+'T'+startTime+':00') <= new Date()) return { success: false, error: 'past_time' };
+    const bSheet = getSheet(CONFIG.SHEETS.BOOKINGS);
+    const existing = sheetToObjects(bSheet).filter(b => String(b.technicianId).trim()===technicianId && normalizeDate(b.bookingDate)===bookingDate && (b.status==='confirmed'||b.status==='pending'));
+    const sMin=timeToMinutes(startTime), eMin=timeToMinutes(endTime);
+    if (existing.some(b=>{ const bs=timeToMinutes(normalizeTime(b.startTime)),be=timeToMinutes(normalizeTime(b.endTime)); return !(eMin<=bs||sMin>=be); })) return { success: false, error: 'slot_taken' };
+    const bookingId = generateId('BKG');
+    const booking = { bookingId, customerId, serviceId, technicianId, bookingDate, startTime, endTime, status:'confirmed', note: note||'', createdAt: new Date().toISOString() };
+    appendRow(bSheet, getHeaders(bSheet), booking);
+    try { const cs=getSheet(CONFIG.SHEETS.CUSTOMERS); const ca=sheetToObjects(cs); const ch=getHeaders(cs); const ci=ca.findIndex(c=>c.customerId===customerId); if(ci!==-1){ca[ci].totalVisits=(parseInt(ca[ci].totalVisits)||0)+1;updateRow(cs,ci,ch,ca[ci]);} } catch(e) {}
+    // Auto-create schedule entry if one doesn't exist for this tech+date
+    try {
+      const schSheet = getSheet(CONFIG.SHEETS.SCHEDULES);
+      const schedules = sheetToObjects(schSheet);
+      const existingSch = schedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === bookingDate);
+      if (!existingSch) {
+        const schHeaders = getHeaders(schSheet);
+        appendRow(schSheet, schHeaders, { scheduleId: generateId('SCH'), technicianId: technicianId, date: bookingDate, startTime: '08:00', endTime: '20:00', isActive: true });
+      }
+    } catch(e) {}
+    return { success: true, booking };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleGetCustomerBookings(payload) {
+  const { customerId } = payload;
+  if (!customerId) return { success: false, error: 'missing_fields' };
+  try {
+    const bookings = sheetToObjects(getSheet(CONFIG.SHEETS.BOOKINGS)).filter(b => b.customerId===customerId);
+    const services = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES));
+    const techs = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS));
+    const enriched = bookings.map(b => ({ ...b, bookingDate: normalizeDate(b.bookingDate), startTime: normalizeTime(b.startTime), endTime: normalizeTime(b.endTime), service: services.find(s=>s.serviceId===b.serviceId)||{}, technician: techs.find(t=>t.technicianId===b.technicianId)||{} }));
+    enriched.sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
+    return { success: true, bookings: enriched };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleCancelBooking(payload) {
+  const { bookingId, customerId } = payload;
+  const sheet = getSheet(CONFIG.SHEETS.BOOKINGS);
+  const bookings = sheetToObjects(sheet); const headers = getHeaders(sheet);
+  const idx = bookings.findIndex(b => b.bookingId===bookingId && b.customerId===customerId);
+  if (idx===-1) return { success: false, error: 'not_found' };
+  if (bookings[idx].status==='cancelled') return { success: false, error: 'already_cancelled' };
+  bookings[idx].status = 'cancelled'; updateRow(sheet, idx, headers, bookings[idx]);
+  return { success: true };
+}
+
+// ── REFERRAL ──────────────────────────────────────────────────
+function handleGetReferralInfo(payload) {
+  const { customerId } = payload;
+  const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
+  const c = customers.find(c => c.customerId===customerId);
+  if (!c) return { success: false, error: 'not_found' };
+  return { success: true, referralCode: c.referralCode, referralCount: parseInt(c.referralCount)||0 };
+}
+
+function handleTrackQRScan(payload) {
+  const { referralCode } = payload;
+  const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
+  const referrer = customers.find(c => c.referralCode===referralCode);
+  if (!referrer) return { success: false, error: 'invalid_code' };
+  try { const rs=getSheet(CONFIG.SHEETS.REFERRALS); appendRow(rs,getHeaders(rs),{referralId:generateId('SCAN'),referrerId:referrer.customerId,referredId:'',qrCode:referralCode,scannedAt:new Date().toISOString(),registeredAt:'',status:'scanned'}); } catch(e) {}
+  return { success: true, referrerName: referrer.name };
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────
+function handleAdminLogin(payload) {
+  const { username, password } = payload;
+  if (username===CONFIG.ADMIN.USERNAME && password===CONFIG.ADMIN.PASSWORD)
+    return { success: true, token: CONFIG.ADMIN.USERNAME+':'+hashPassword(password) };
+  return { success: false, error: 'wrong_credentials' };
+}
+
+function handleAdminGetAllBookings(payload) {
+  if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
+  try {
+    const bookings = sheetToObjects(getSheet(CONFIG.SHEETS.BOOKINGS));
+    const services = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES));
+    const techs = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS));
+    const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
+    const enriched = bookings.map(b => ({ ...b, bookingDate: normalizeDate(b.bookingDate), startTime: normalizeTime(b.startTime), endTime: normalizeTime(b.endTime), service: services.find(s=>s.serviceId===b.serviceId)||{}, technician: techs.find(t=>t.technicianId===b.technicianId)||{}, customer: sanitizeCustomer(customers.find(c=>c.customerId===b.customerId)||{}) }));
+    enriched.sort((a,b) => (b.bookingDate+b.startTime).localeCompare(a.bookingDate+a.startTime));
+    return { success: true, bookings: enriched };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleAdminGetServices(payload) {
+  if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
+  try { return { success: true, services: sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)) }; } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleAdminSaveService(payload) {
+  if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
+  try {
+    const { service } = payload;
+    const sheet = getSheet(CONFIG.SHEETS.SERVICES); const all = sheetToObjects(sheet); const headers = getHeaders(sheet);
+    const idx = all.findIndex(s => s.serviceId===service.serviceId);
+    if (idx===-1) { if (!service.serviceId) service.serviceId=generateId('SVC'); appendRow(sheet, headers, service); }
+    else updateRow(sheet, idx, headers, service);
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleAdminDeleteService(payload) {
+  if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
+  try {
+    const sheet = getSheet(CONFIG.SHEETS.SERVICES); const all = sheetToObjects(sheet);
+    const idx = all.findIndex(s => s.serviceId===payload.serviceId);
+    if (idx===-1) return { success: false, error: 'not_found' };
+    deleteRow(sheet, idx); return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleAdminGetTechnicians(payload) {
+  if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
+  try { return { success: true, technicians: sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)) }; } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleAdminSaveTechnician(payload) {
+  if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
+  try {
+    const { technician } = payload;
+    const sheet = getSheet(CONFIG.SHEETS.TECHNICIANS); const all = sheetToObjects(sheet); const headers = getHeaders(sheet);
+    const idx = all.findIndex(t => t.technicianId===technician.technicianId);
+    if (idx===-1) { if (!technician.technicianId) technician.technicianId=generateId('TECH'); appendRow(sheet, headers, technician); }
+    else updateRow(sheet, idx, headers, technician);
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleAdminDeleteTechnician(payload) {
+  if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
+  try {
+    const sheet = getSheet(CONFIG.SHEETS.TECHNICIANS); const all = sheetToObjects(sheet);
+    const idx = all.findIndex(t => t.technicianId===payload.technicianId);
+    if (idx===-1) return { success: false, error: 'not_found' };
+    deleteRow(sheet, idx); return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleAdminGetSchedules(payload) {
+  if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
+  try {
+    const schedules = sheetToObjects(getSheet(CONFIG.SHEETS.SCHEDULES)).map(s => ({ ...s, date: normalizeDate(s.date), startTime: normalizeTime(s.startTime), endTime: normalizeTime(s.endTime) }));
+    return { success: true, schedules };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleAdminSaveSchedule(payload) {
+  if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
+  try {
+    const { schedule } = payload;
+    const sheet = getSheet(CONFIG.SHEETS.SCHEDULES); const all = sheetToObjects(sheet); const headers = getHeaders(sheet);
+    const idx = all.findIndex(s => s.scheduleId===schedule.scheduleId);
+    if (idx===-1) { if (!schedule.scheduleId) schedule.scheduleId=generateId('SCH'); appendRow(sheet, headers, schedule); }
+    else updateRow(sheet, idx, headers, schedule);
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function handleAdminDeleteSchedule(payload) {
+  if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
+  try {
+    const sheet = getSheet(CONFIG.SHEETS.SCHEDULES); const all = sheetToObjects(sheet);
+    const idx = all.findIndex(s => s.scheduleId===payload.scheduleId);
+    if (idx===-1) return { success: false, error: 'not_found' };
+    deleteRow(sheet, idx); return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
