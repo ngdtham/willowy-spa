@@ -270,8 +270,11 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
   .booking-item{grid-template-columns:auto 1fr}
   .hero{padding:36px 16px 28px}
   .section,.container{padding:16px}
-  .admin-sidebar{display:none}
-  .admin-main{padding:16px}
+  .admin-dashboard{flex-direction:column}
+  .admin-sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:10px;border-right:none;border-bottom:1px solid var(--stone);white-space:nowrap;gap:12px;position:sticky;top:var(--nav-h);z-index:90;background:var(--deep)}
+  .admin-nav-item{padding:6px 12px;font-size:13px;border-left:none;border-bottom:3px solid transparent}
+  .admin-nav-item.active{border-left-color:transparent;border-bottom-color:var(--gold)}
+  .admin-sidebar-logo{display:none}
 }
 @media(min-width:641px){
   nav.top-nav .nav-btn{display:inline-flex}
@@ -397,17 +400,6 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 
 <!-- ADMIN -->
 <div class="page" id="pageAdmin">
-  <!-- Admin Login -->
-  <div id="adminLoginWrap" style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px">
-    <div class="auth-box">
-      <div class="auth-logo"><h2>🔐 Admin</h2><p>Willowy Spa Management</p></div>
-      <div class="form-group"><label class="form-label">Username</label><input class="form-control" id="adminUser" type="text" placeholder="willowy_admin"/></div>
-      <div class="form-group"><label class="form-label">Password</label><input class="form-control" id="adminPass" type="password" placeholder="••••••••"/></div>
-      <button class="btn btn-primary btn-block" onclick="doAdminLogin()">Đăng nhập Admin</button>
-      <div style="text-align:center;margin-top:14px"><button class="btn btn-outline btn-sm" onclick="showPage('home')">← Về trang chủ</button></div>
-    </div>
-  </div>
-  <!-- Admin Dashboard -->
   <div id="adminDashboard" style="display:none;flex:1;flex-direction:column">
     <div class="admin-layout">
       <!-- Sidebar -->
@@ -425,9 +417,8 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
         <div class="admin-nav-item" onclick="switchAdminPanel('schedules')" id="anav-schedules">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Lịch làm việc
         </div>
-        <div style="margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.1)">
-          <button class="btn btn-outline btn-sm" style="color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.2);width:100%" onclick="adminLogout()">Đăng xuất</button>
-        </div>
+        <div style="flex:1"></div>
+        <div class="admin-nav-item" onclick="showPage('home')" style="color:var(--gold)">🏠 Quay lại Web</div>
       </div>
       <!-- Main -->
       <div class="admin-main">
@@ -697,6 +688,7 @@ function renderAll(){
 
 // ── NAV ───────────────────────────────────────────────────────
 function renderNav(){
+  const an=document.getElementById('navAdmin');if(an)an.style.display=state.customer&&state.customer.isAdmin?'inline-flex':'none';
   ['navLogin','navBook','navProfile','navLogout'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.textContent=t(id);
@@ -724,9 +716,10 @@ function showPage(name){
   if(name==='profile') renderProfile();
   if(name==='home') renderHomePage();
   if(name==='admin'){
-    document.getElementById('adminLoginWrap').style.display=state.admin.token?'none':'flex';
-    document.getElementById('adminDashboard').style.display=state.admin.token?'flex':'none';
-    if(state.admin.token) loadAdminBookings();
+    if(!state.customer||!state.customer.isAdmin){showToast('Bạn không có quyền truy cập Admin','error');showPage('home');return;}
+    state.admin.token = state.customer.customerId;
+    document.getElementById('adminDashboard').style.display='flex';
+    loadAdminBookings();
   }
 }
 function goHome(){showPage('home');}
@@ -779,7 +772,10 @@ async function doLogin(){
     const errs={wrong_password:t('errWrongPwd'),not_found:t('errNotFound'),network_error:'Lỗi kết nối!',timeout:'Quá thời gian!'};
     showToast(errs[res.error]||res.error,'error');return;
   }
-  state.customer=res.customer; localStorage.setItem('willowyCustomer',JSON.stringify(res.customer));
+  state.customer=res.customer;
+  if(res.isAdmin) state.customer.isAdmin = true;
+  if(state.customer.isAdmin) state.admin.token = state.customer.customerId;
+  localStorage.setItem('willowyCustomer',JSON.stringify(state.customer));
   showToast(t('successLogin'),'success'); renderNav(); showPage('home');
 }
 
@@ -1044,23 +1040,11 @@ function generateQRSVG(text){
 
 // ── ADMIN ─────────────────────────────────────────────────────
 async function doAdminLogin(){
-  const username=document.getElementById('adminUser').value.trim();
-  const password=document.getElementById('adminPass').value;
-  if(!username||!password){showToast('Nhập đầy đủ thông tin','error');return;}
-  showLoading(true,'Đang xác thực...');
-  let res;try{res=await api('adminLogin',{username,password});}catch(e){res={success:false};}
-  showLoading(false);
-  if(!res.success){showToast('Sai tài khoản hoặc mật khẩu','error');return;}
-  state.admin.token=res.token;
-  document.getElementById('adminLoginWrap').style.display='none';
-  document.getElementById('adminDashboard').style.display='flex';
-  loadAdminBookings();
+  // Deprecated
 }
 
 function adminLogout(){
-  state.admin={token:null,bookings:[],services:[],technicians:[],schedules:[]};
-  document.getElementById('adminLoginWrap').style.display='flex';
-  document.getElementById('adminDashboard').style.display='none';
+  // Deprecated
 }
 
 function switchAdminPanel(name){
@@ -1318,7 +1302,7 @@ function openScheduleModal(scheduleId){
     document.getElementById('schId').value='';
     document.getElementById('schDate').value='';
     document.getElementById('schStart').value='09:00';
-    document.getElementById('schEnd').value='20:00';
+    document.getElementById('schEnd').value='22:00';
     document.getElementById('schActive').checked=true;
   }
   modal.classList.add('show');

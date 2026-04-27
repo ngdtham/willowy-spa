@@ -131,8 +131,8 @@ function sanitizeCustomer(c) { const {passwordHash, ...safe} = c; return safe; }
 function verifyAdmin(payload) {
   if (!payload || !payload.adminToken) return false;
   const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
-  const admin = customers.find(c => c.customerId === payload.adminToken && isActive(c.isAdmin));
-  return !!admin;
+  const admin = customers.find(c => c.customerId === payload.adminToken);
+  return admin && isActive(admin.isAdmin);
 }
 
 // ── AUTH ─────────────────────────────────────────────────────
@@ -226,7 +226,7 @@ function handleGetAvailableSlots(payload) {
   } catch(e) {}
   // Use default working hours if no specific schedule exists
   var scheduleStart = techSchedule ? normalizeTime(techSchedule.startTime) : '08:00';
-  var scheduleEnd = techSchedule ? normalizeTime(techSchedule.endTime) : '20:00';
+  var scheduleEnd = techSchedule ? normalizeTime(techSchedule.endTime) : '22:00';
   return { success: true, slots: generateTimeSlots(scheduleStart, scheduleEnd, duration, existingBookings, date) };
 }
 
