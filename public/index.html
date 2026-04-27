@@ -882,11 +882,13 @@ function goStep(n){
   renderStepIndicator();
   if(n===4)renderSummary();
   if(n===3){
-    const di=document.getElementById('bookDate');
-    if(di){
-      state.booking.date = di.value;
-      loadSlots();
-    }
+    setTimeout(() => {
+      const di=document.getElementById('bookDate');
+      if(di){
+        state.booking.date = di.value;
+        loadSlots();
+      }
+    }, 50);
   }
 }
 
