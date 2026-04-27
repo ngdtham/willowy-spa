@@ -818,7 +818,8 @@ function renderStepIndicator(){
   el.innerHTML=steps.map((s,i)=>{const n=i+1;const cls=n<state.currentStep?'done':n===state.currentStep?'active':'';return`<div class="step ${cls}"><span class="step-num">${n<state.currentStep?'✓':n}</span>${s}</div>`;}).join('');
 }
 function resetBooking(){
-  state.booking={serviceId:null,technicianId:null,date:null,startTime:null,endTime:null,note:''};
+  const today = new Date().toISOString().split('T')[0];
+  state.booking={serviceId:null,technicianId:null,date:today,startTime:null,endTime:null,note:''};
   state.currentStep=1;
   document.querySelectorAll('.step-content').forEach(s=>s.classList.remove('active'));
   const s1=document.getElementById('step1');if(s1)s1.classList.add('active');
@@ -880,6 +881,17 @@ function goStep(n){
   const el=document.getElementById('step'+n);if(el)el.classList.add('active');
   renderStepIndicator();
   if(n===4)renderSummary();
+  if(n===3){
+    const container=document.getElementById('slotsContainer');
+    if(container) container.innerHTML='<div class="spinner"></div>';
+    setTimeout(() => {
+      const di=document.getElementById('bookDate');
+      if(di){
+        state.booking.date=di.value||new Date().toISOString().split('T')[0];
+        loadSlots();
+      }
+    }, 300);
+  }
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
@@ -896,12 +908,14 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 async function loadSlots(){
-  if(!state.booking.technicianId||!state.booking.date)return;
-  showLoading(true);
+  const container=document.getElementById('slotsContainer');
+  if(!container)return;
+  if(!state.booking.technicianId||!state.booking.date){
+    container.innerHTML=`<p style="color:var(--sub);font-size:12px">${t('selectDateHint')}</p>`;
+    return;
+  }
+  container.innerHTML='<div class="spinner"></div>';
   const res=await api('getAvailableSlots',{technicianId:state.booking.technicianId,date:state.booking.date,serviceId:state.booking.serviceId});
-  showLoading(false);
-  const container=document.getElementById('slotsContainer');if(!container)return;
-  if(!res.success||!res.slots.length){container.innerHTML=`<p style="color:var(--sub);font-size:12px">${t('noSlot')}</p>`;return;}
   container.innerHTML=`<div class="slots-grid">${res.slots.map(s=>{
     let cls='slot';
     if(s.isPast) cls+=' past';
