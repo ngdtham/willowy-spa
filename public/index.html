@@ -328,14 +328,14 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
       </div>
       <div id="loginForm">
         <div class="form-group"><label class="form-label" id="lbPhone"></label><input class="form-control" id="loginPhone" type="tel" placeholder="0901234567"/></div>
-        <div class="form-group"><label class="form-label" id="lbPwd"></label><div class="pwd-wrap"><input class="form-control" id="loginPwd" type="password" placeholder="••••••••"/><span class="pwd-toggle" onclick="togglePwd('loginPwd')">👁️</span></div></div>
+        <div class="form-group"><label class="form-label" id="lbPwd"></label><div class="pwd-wrap"><input class="form-control" id="loginPwd" type="password" placeholder="••••••••"/><span class="pwd-toggle" onclick="togglePwd('loginPwd',this)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10a10 10 0 0 0 20 0"></path><line x1="2" y1="10" x2="4" y2="14"></line><line x1="7" y1="12" x2="8" y2="17"></line><line x1="12" y1="13" x2="12" y2="18"></line><line x1="17" y1="12" x2="16" y2="17"></line><line x1="22" y1="10" x2="20" y2="14"></line></svg></span></div></div>
         <button class="btn btn-primary btn-block" onclick="doLogin()" id="btnLogin"></button>
       </div>
       <div id="registerForm" style="display:none">
         <div class="form-group"><label class="form-label" id="lbName"></label><input class="form-control" id="regName" type="text" placeholder="Nguyễn Văn A"/></div>
         <div class="form-group"><label class="form-label" id="lbPhoneR"></label><input class="form-control" id="regPhone" type="tel" placeholder="0901234567"/></div>
         <div class="form-group"><label class="form-label" id="lbEmail"></label><input class="form-control" id="regEmail" type="email" placeholder="email@example.com"/></div>
-        <div class="form-group"><label class="form-label" id="lbPwdR"></label><div class="pwd-wrap"><input class="form-control" id="regPwd" type="password" placeholder="Tối thiểu 6 ký tự"/><span class="pwd-toggle" onclick="togglePwd('regPwd')">👁️</span></div></div>
+        <div class="form-group"><label class="form-label" id="lbPwdR"></label><div class="pwd-wrap"><input class="form-control" id="regPwd" type="password" placeholder="Tối thiểu 6 ký tự"/><span class="pwd-toggle" onclick="togglePwd('regPwd',this)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10a10 10 0 0 0 20 0"></path><line x1="2" y1="10" x2="4" y2="14"></line><line x1="7" y1="12" x2="8" y2="17"></line><line x1="12" y1="13" x2="12" y2="18"></line><line x1="17" y1="12" x2="16" y2="17"></line><line x1="22" y1="10" x2="20" y2="14"></line></svg></span></div></div>
         <div class="form-group"><label class="form-label" id="lbRef"></label><input class="form-control" id="regRef" type="text" placeholder="REF_XXXXX (nếu có)"/></div>
         <button class="btn btn-primary btn-block" onclick="doRegister()" id="btnRegister"></button>
       </div>
@@ -1377,7 +1377,14 @@ function init(){
   showPage('home');
 }
 
-function togglePwd(id){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}
+function togglePwd(id, btn) {
+  const el = document.getElementById(id);
+  const isPwd = el.type === 'password';
+  el.type = isPwd ? 'text' : 'password';
+  const eye = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  const eyeOff = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10a10 10 0 0 0 20 0"></path><line x1="2" y1="10" x2="4" y2="14"></line><line x1="7" y1="12" x2="8" y2="17"></line><line x1="12" y1="13" x2="12" y2="18"></line><line x1="17" y1="12" x2="16" y2="17"></line><line x1="22" y1="10" x2="20" y2="14"></line></svg>`;
+  btn.innerHTML = isPwd ? eye : eyeOff;
+}
 window.addEventListener('DOMContentLoaded',init);
 </script>
 </body>
