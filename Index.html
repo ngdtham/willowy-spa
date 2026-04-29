@@ -298,7 +298,8 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
       <button class="lang-btn" id="btnEN" onclick="setLang('en')">EN</button>
     </div>
     <button class="nav-btn" id="navLogin" onclick="showPage('auth')"></button>
-    <button class="nav-btn primary" id="navBook" onclick="showPage('booking')" style="display:none"></button>
+    <button class="nav-btn" id="navBook" onclick="showPage('booking')" style="display:none"></button>
+    <button class="nav-btn" id="navBkgs" onclick="showPage('bookings')" style="display:none"></button>
     <button class="nav-btn" id="navProfile" onclick="showPage('profile')" style="display:none"></button>
     <button class="nav-btn" id="navLogout" onclick="logout()" style="display:none"></button>
     <button class="nav-btn" id="navAdmin" onclick="showPage('admin')" style="font-size:11px;opacity:.5" title="Admin">🔐</button>
@@ -430,7 +431,8 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
   <div class="container">
     <div class="card" id="profileCard"></div>
     <div class="card" style="margin-top:14px" id="referralCard"></div>
-    <div style="margin-top:20px;padding:0 10px">
+    <div style="margin-top:20px;padding:0 10px;display:flex;flex-direction:column;gap:10px" id="profileActions">
+      <button class="btn btn-outline btn-block" onclick="showPage('admin')" id="btnProfAdmin" style="display:none;font-size:12px;opacity:0.7">🔐 Quản lý hệ thống (Admin)</button>
       <button class="btn btn-outline btn-block" onclick="logout()" style="color:#e57373;border-color:#e57373" id="btnProfLogout"></button>
     </div>
   </div>
@@ -623,7 +625,7 @@ const I18N = {
     s3SlotLabel:'Chọn giờ',s3NoteLabel:'Ghi chú (tùy chọn)',selectDateHint:'Vui lòng chọn ngày để xem giờ trống',
     s4Title:'Xác nhận đặt lịch',btnBack:'← Quay lại',btnNext:'Tiếp theo →',btnConfirm:'✓ Xác nhận đặt lịch',
     myBkTitle:'Lịch đặt của tôi',
-    navLogin:'Đăng nhập',navBook:'Đặt lịch',navProfile:'Tài khoản',navLogout:'Đăng xuất',
+    navLogin:'Đăng nhập',navBook:'Đặt lịch',navBkgs:'Lịch hẹn',navProfile:'Tài khoản',navLogout:'Đăng xuất',
     bnHome:'Trang chủ',bnBook:'Đặt lịch',bnBkgs:'Lịch hẹn',bnProf:'Tài khoản',
     min:'phút',sum_service:'Dịch vụ',sum_tech:'Kỹ thuật viên',sum_date:'Ngày',sum_time:'Giờ',sum_price:'Giá',
     cancelBtn:'Hủy',confirmCancel:'Bạn chắc chắn muốn hủy lịch này?',
@@ -654,7 +656,7 @@ const I18N = {
     s3SlotLabel:'Select time slot',s3NoteLabel:'Notes (optional)',selectDateHint:'Select a date to see available slots',
     s4Title:'Confirm Booking',btnBack:'← Back',btnNext:'Next →',btnConfirm:'✓ Confirm Booking',
     myBkTitle:'My Bookings',
-    navLogin:'Sign In',navBook:'Book',navProfile:'Account',navLogout:'Sign Out',
+    navLogin:'Sign In',navBook:'Book',navBkgs:'Bookings',navProfile:'Account',navLogout:'Sign Out',
     bnHome:'Home',bnBook:'Book',bnBkgs:'Bookings',bnProf:'Profile',
     min:'min',sum_service:'Service',sum_tech:'Technician',sum_date:'Date',sum_time:'Time',sum_price:'Price',
     cancelBtn:'Cancel',confirmCancel:'Cancel this booking?',
@@ -729,13 +731,13 @@ function renderAll(){
 // ── NAV ───────────────────────────────────────────────────────
 function renderNav(){
   const an=document.getElementById('navAdmin');if(an)an.style.display=state.customer&&state.customer.isAdmin?'inline-flex':'none';
-  ['navLogin','navBook','navProfile','navLogout'].forEach(id=>{
+  ['navLogin','navBook','navBkgs','navProfile','navLogout'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.textContent=t(id);
   });
-  const li=document.getElementById('navLogin'),lb=document.getElementById('navBook'),lp=document.getElementById('navProfile'),ll=document.getElementById('navLogout');
-  if(state.customer){li.style.display='none';lb.style.display='';lp.style.display='';ll.style.display='';}
-  else{li.style.display='';lb.style.display='none';lp.style.display='none';ll.style.display='none';}
+  const li=document.getElementById('navLogin'),lb=document.getElementById('navBook'),lk=document.getElementById('navBkgs'),lp=document.getElementById('navProfile'),ll=document.getElementById('navLogout');
+  if(state.customer){li.style.display='none';lb.style.display='';lk.style.display='';lp.style.display='';ll.style.display='';}
+  else{li.style.display='';lb.style.display='none';lk.style.display='none';lp.style.display='none';ll.style.display='none';}
 }
 function renderBottomNav(){
   ['Home','Book','Bkgs','Prof'].forEach(k=>{ const el=document.getElementById('bn'+k+'Label'); if(el) el.textContent=t('bn'+k); });
@@ -1185,11 +1187,11 @@ async function renderProfile(){
       <div class="qr-code-text" onclick="copyRef('${res.referralCode}')">${res.referralCode}</div>
       <p style="font-size:11px;color:var(--sub);margin-top:4px">Nhấn để sao chép</p>
       <div class="stat-chips"><div class="stat-chip"><div class="val">${res.referralCount}</div><div class="lbl">${t('referralCount')}</div></div></div>
-    </div>
-    <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--stone);display:flex;flex-direction:column;gap:10px;align-items:center">
-      <button class="btn btn-outline btn-sm" onclick="showPage('admin')" style="opacity:0.6;width:100%;max-width:300px">🔐 Quản lý hệ thống (Admin)</button>
-      <button class="btn btn-danger btn-sm" onclick="logout()" style="width:100%;max-width:300px">🚪 Đăng xuất</button>
     </div>`;
+    const adm = document.getElementById('btnProfAdmin');
+    if(adm) adm.style.display = (c.isAdmin ? 'inline-flex' : 'none');
+    const lout = document.getElementById('btnProfLogout');
+    if(lout) lout.textContent = '🚪 ' + t('navLogout');
   }
 }
 
