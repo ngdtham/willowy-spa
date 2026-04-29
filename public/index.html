@@ -376,8 +376,8 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
         </div>
         <div id="uiRecurring" style="display:none">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-            <div><label class="form-label">Ngày bắt đầu</label><input class="form-control" id="recStartDate" type="date" onchange="checkRecValid()"/></div>
-            <div><label class="form-label">Ngày kết thúc</label><input class="form-control" id="recEndDate" type="date" onchange="checkRecValid()"/></div>
+            <div><label class="form-label">Ngày bắt đầu</label><input class="form-control" id="recStartDate" type="date" onchange="updateNextBtn()"/></div>
+            <div><label class="form-label">Ngày kết thúc</label><input class="form-control" id="recEndDate" type="date" onchange="updateNextBtn()"/></div>
           </div>
           <div class="form-group">
             <label class="form-label">Chọn thứ trong tuần</label>
@@ -393,14 +393,14 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
           </div>
           <div class="form-group">
             <label class="form-label">Chọn giờ</label>
-            <input class="form-control" id="recTime" type="time" value="09:00" onchange="checkRecValid()"/>
+            <input class="form-control" id="recTime" type="time" value="09:00" onchange="updateNextBtn()"/>
           </div>
         </div>
         <div class="form-group"><label class="form-label" id="s3NoteLabel"></label><textarea class="form-control" id="bookNote" rows="2" style="resize:none"></textarea></div>
       </div>
       <div style="display:flex;gap:10px;margin-top:14px">
         <button class="btn btn-outline" onclick="goStep(2)" id="btnBack3"></button>
-        <button class="btn btn-primary" onclick="goStep(4)" id="btnNext3"></button>
+        <button class="btn btn-primary" onclick="goStep(4)" id="btnNext3" disabled></button>
       </div>
     </div>
     <div class="step-content" id="step4">
@@ -979,6 +979,7 @@ function setRecurring(isRec){
   document.getElementById('tabRecurring').classList.toggle('active',isRec);
   document.getElementById('uiOneTime').style.display=isRec?'none':'block';
   document.getElementById('uiRecurring').style.display=isRec?'block':'none';
+  updateNextBtn();
 }
 
 function toggleRecDay(btn){
@@ -989,10 +990,19 @@ function toggleRecDay(btn){
   } else {
     state.booking.recDays=state.booking.recDays.filter(d=>d!==day);
   }
+  updateNextBtn();
 }
 
-function checkRecValid(){
-  // Deprecated - validation moved to goStep(4)
+function updateNextBtn(){
+  const bn=document.getElementById('btnNext3');if(!bn)return;
+  if(state.booking.isRecurring){
+    const sDate = document.getElementById('recStartDate').value;
+    const eDate = document.getElementById('recEndDate').value;
+    const rTime = document.getElementById('recTime').value;
+    bn.disabled = !(sDate && eDate && state.booking.recDays.length > 0 && rTime);
+  } else {
+    bn.disabled = !state.booking.startTime;
+  }
 }
 
 async function loadSlots(){
@@ -1018,7 +1028,7 @@ function selectSlot(start,end,el){
   state.booking.startTime=start;state.booking.endTime=end;
   document.querySelectorAll('.slot').forEach(s=>s.classList.remove('selected'));
   if(el)el.classList.add('selected');
-  const bn=document.getElementById('btnNext3');if(bn)bn.disabled=false;
+  updateNextBtn();
 }
 
 function renderSummary(){
