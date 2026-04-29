@@ -400,7 +400,7 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
       </div>
       <div style="display:flex;gap:10px;margin-top:14px">
         <button class="btn btn-outline" onclick="goStep(2)" id="btnBack3"></button>
-        <button class="btn btn-primary" onclick="goStep(4)" id="btnNext3" disabled></button>
+        <button class="btn btn-primary" onclick="goStep(4)" id="btnNext3"></button>
       </div>
     </div>
     <div class="step-content" id="step4">
@@ -910,6 +910,27 @@ function selectTech(id,el){
 }
 
 function goStep(n){
+  if(n===4){
+    if(state.booking.isRecurring){
+      state.booking.recStartDate=document.getElementById('recStartDate').value;
+      state.booking.recEndDate=document.getElementById('recEndDate').value;
+      state.booking.recTime=document.getElementById('recTime').value;
+      if(!state.booking.recStartDate || !state.booking.recEndDate){
+        showToast('Vui lòng chọn ngày bắt đầu và ngày kết thúc', 'error'); return;
+      }
+      if(state.booking.recDays.length===0){
+        showToast('Vui lòng chọn ít nhất 1 thứ trong tuần', 'error'); return;
+      }
+      if(!state.booking.recTime){
+        showToast('Vui lòng chọn giờ', 'error'); return;
+      }
+    } else {
+      if(!state.booking.startTime){
+        showToast('Vui lòng chọn giờ', 'error'); return;
+      }
+    }
+  }
+
   state.currentStep=n;
   document.querySelectorAll('.step-content').forEach(s=>s.classList.remove('active'));
   const el=document.getElementById('step'+n);if(el)el.classList.add('active');
@@ -926,8 +947,6 @@ function goStep(n){
           loadSlots();
         }
       }, 400);
-    } else {
-      checkRecValid();
     }
   }
 }
@@ -960,7 +979,6 @@ function setRecurring(isRec){
   document.getElementById('tabRecurring').classList.toggle('active',isRec);
   document.getElementById('uiOneTime').style.display=isRec?'none':'block';
   document.getElementById('uiRecurring').style.display=isRec?'block':'none';
-  checkRecValid();
 }
 
 function toggleRecDay(btn){
@@ -971,19 +989,10 @@ function toggleRecDay(btn){
   } else {
     state.booking.recDays=state.booking.recDays.filter(d=>d!==day);
   }
-  checkRecValid();
 }
 
 function checkRecValid(){
-  const bn=document.getElementById('btnNext3');if(!bn)return;
-  if(state.booking.isRecurring){
-    state.booking.recStartDate=document.getElementById('recStartDate').value;
-    state.booking.recEndDate=document.getElementById('recEndDate').value;
-    state.booking.recTime=document.getElementById('recTime').value;
-    bn.disabled=!(state.booking.recStartDate && state.booking.recEndDate && state.booking.recDays.length>0 && state.booking.recTime);
-  } else {
-    bn.disabled=!state.booking.startTime;
-  }
+  // Deprecated - validation moved to goStep(4)
 }
 
 async function loadSlots(){
