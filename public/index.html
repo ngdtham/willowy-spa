@@ -376,8 +376,8 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
         </div>
         <div id="uiRecurring" style="display:none">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-            <div><label class="form-label">Ngày bắt đầu</label><input class="form-control" id="recStartDate" type="date" onchange="updateNextBtn()"/></div>
-            <div><label class="form-label">Ngày kết thúc</label><input class="form-control" id="recEndDate" type="date" onchange="updateNextBtn()"/></div>
+            <div><label class="form-label">Ngày bắt đầu</label><input class="form-control" id="recStartDate" type="date" oninput="updateNextBtn()" onchange="updateNextBtn()"/></div>
+            <div><label class="form-label">Ngày kết thúc</label><input class="form-control" id="recEndDate" type="date" oninput="updateNextBtn()" onchange="updateNextBtn()"/></div>
           </div>
           <div class="form-group">
             <label class="form-label">Chọn thứ trong tuần</label>
@@ -393,7 +393,7 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
           </div>
           <div class="form-group">
             <label class="form-label">Chọn giờ</label>
-            <input class="form-control" id="recTime" type="time" value="09:00" onchange="updateNextBtn()"/>
+            <input class="form-control" id="recTime" type="time" value="09:00" oninput="updateNextBtn()" onchange="updateNextBtn()"/>
           </div>
         </div>
         <div class="form-group"><label class="form-label" id="s3NoteLabel"></label><textarea class="form-control" id="bookNote" rows="2" style="resize:none"></textarea></div>
@@ -852,12 +852,17 @@ function renderStepIndicator(){
   el.innerHTML=steps.map((s,i)=>{const n=i+1;const cls=n<state.currentStep?'done':n===state.currentStep?'active':'';return`<div class="step ${cls}"><span class="step-num">${n<state.currentStep?'✓':n}</span>${s}</div>`;}).join('');
 }
 function resetBooking(){
-  const today = new Date().toISOString().split('T')[0];
-  state.booking={serviceId:null,technicianId:null,date:today,startTime:null,endTime:null,note:''};
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  state.booking={
+    serviceId:null, technicianId:null, date:today, startTime:null, endTime:null, note:'',
+    isRecurring:false, recStartDate:today, recEndDate:'', recDays:[], recTime:'09:00'
+  };
   state.currentStep=1;
   document.querySelectorAll('.step-content').forEach(s=>s.classList.remove('active'));
   const s1=document.getElementById('step1');if(s1)s1.classList.add('active');
   renderBookingLabels();
+  updateNextBtn();
 }
 
 async function loadServices(){
