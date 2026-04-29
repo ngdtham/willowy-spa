@@ -417,6 +417,10 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 <div class="page" id="pageBookings">
   <div class="container">
     <h2 class="section-title" style="margin-bottom:20px" id="myBkTitle"></h2>
+    <div class="tabs" style="margin-bottom:14px">
+      <button class="tab active" id="tabUpcoming" onclick="switchBookingTab('upcoming')">Sắp tới</button>
+      <button class="tab" id="tabPast" onclick="switchBookingTab('past')">Đã qua</button>
+    </div>
     <div id="bookingsList"></div>
   </div>
 </div>
@@ -698,9 +702,9 @@ function showToast(msg,type='',dur=3000){
   setTimeout(()=>el.className='',dur);
 }
 
-async function api(action,payload={}){
+async function api(action,payload={},timeout=12000){
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),12000);
+  const timer=setTimeout(()=>controller.abort(),timeout);
   try{
     const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,payload}),signal:controller.signal});
     clearTimeout(timer); return res.json();
@@ -1077,7 +1081,8 @@ async function confirmBooking(){
       payload.bookingDate = state.booking.date;
       payload.startTime = state.booking.startTime;
     }
-    res=await api('createBooking', payload);
+    // Tăng timeout lên 30s cho tác vụ đặt lịch
+    res=await api('createBooking', payload, 30000);
   }
   catch(e){res={success:false,error:'network_error'};}
   showLoading(false);
@@ -1094,24 +1099,54 @@ async function confirmBooking(){
 }
 
 // ── MY BOOKINGS ───────────────────────────────────────────────
+let _currentBookingTab = 'upcoming';
 async function loadBookings(){
   const el=document.getElementById('myBkTitle');if(el)el.textContent=t('myBkTitle');
   if(!state.customer)return;
   showLoading(true);
   const res=await api('getCustomerBookings',{customerId:state.customer.customerId});
   showLoading(false);
+  state.myBookings = res.bookings || [];
+  renderBookings();
+}
+
+function switchBookingTab(tab){
+  _currentBookingTab = tab;
+  document.getElementById('tabUpcoming').classList.toggle('active', tab==='upcoming');
+  document.getElementById('tabPast').classList.toggle('active', tab==='past');
+  renderBookings();
+}
+
+function renderBookings(){
   const list=document.getElementById('bookingsList');if(!list)return;
-  if(!res.success){list.innerHTML=`<p style="color:var(--sub);text-align:center;padding:20px">Không thể tải lịch.</p>`;return;}
-  if(!res.bookings.length){list.innerHTML=`<div class="empty"><div class="empty-icon">📅</div><h4>${t('noBookings')}</h4><p>${t('noBookingsDesc')}</p><br><button class="btn btn-primary" onclick="showPage('booking')">${t('heroCta')}</button></div>`;return;}
-  list.innerHTML=res.bookings.map(b=>{
+  const now = new Date();
+  let filtered = (state.myBookings || []).filter(b => {
+    const bDate = new Date(b.bookingDate + 'T' + (b.startTime || '00:00'));
+    return _currentBookingTab === 'upcoming' ? bDate >= now : bDate < now;
+  });
+  
+  if (_currentBookingTab === 'past') {
+    filtered.sort((a,b) => (b.bookingDate+b.startTime).localeCompare(a.bookingDate+a.startTime));
+  }
+
+  if(!filtered.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">📅</div><h4>${_currentBookingTab==='upcoming'?'Không có lịch sắp tới':'Không có lịch sử'}</h4><p>${_currentBookingTab==='upcoming'?t('noBookingsDesc'):''}</p></div>`;
+    return;
+  }
+
+  list.innerHTML=filtered.map(b=>{
     const d=fmtDateShort(b.bookingDate);
-    const canCancel=b.status==='confirmed'&&new Date(b.bookingDate+'T'+(b.startTime||'00:00'))>new Date();
+    const bDate = new Date(b.bookingDate+'T'+(b.startTime||'00:00'));
+    const canCancel=b.status==='confirmed' && bDate > now;
     return`<div class="booking-item">
       <div class="booking-date"><div class="day">${d.day}</div><div class="mon">${d.mon}</div></div>
       <div class="booking-info">
         <h4>${state.lang==='vi'?b.service.nameVi:b.service.nameEn}</h4>
         <p>${state.lang==='vi'?b.technician.nameVi:b.technician.nameEn} · ${b.startTime} – ${b.endTime}</p>
-        <span class="status-badge status-${b.status}">${b.status==='confirmed'?(state.lang==='vi'?'Đã xác nhận':'Confirmed'):b.status==='cancelled'?(state.lang==='vi'?'Đã hủy':'Cancelled'):'Chờ'}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="status-badge status-${b.status}">${b.status==='confirmed'?(state.lang==='vi'?'Đã xác nhận':'Confirmed'):b.status==='cancelled'?(state.lang==='vi'?'Đã hủy':'Cancelled'):'Chờ'}</span>
+          ${b.status==='confirmed' && bDate < now ? '<span class="status-badge" style="background:#f5f5f5;color:#999">Đã hoàn thành</span>' : ''}
+        </div>
       </div>
       ${canCancel?`<button class="btn btn-danger" onclick="cancelBooking('${b.bookingId}')">${t('cancelBtn')}</button>`:'<div></div>'}
     </div>`;

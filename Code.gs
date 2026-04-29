@@ -252,7 +252,9 @@ function generateTimeSlots(startTime, endTime, duration, bookings, date) {
 }
 
 function handleCreateBooking(payload) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(20000); // Đợi tối đa 20 giây
     const { customerId, serviceId, technicianId, note, isRecurring, bookingDate, startTime, startDate, endDate, daysOfWeek } = payload;
     if (!customerId||!serviceId||!technicianId) return { success: false, error: 'missing_fields' };
     
@@ -312,7 +314,18 @@ function handleCreateBooking(payload) {
       if (bookingStartDateTime <= now) { skippedDates.push(d); continue; }
       
       const existingForDay = existingBookings.filter(b => String(b.technicianId).trim()===technicianId && normalizeDate(b.bookingDate)===d);
-      if (existingForDay.some(b=>{ const bs=timeToMinutes(normalizeTime(b.startTime)),be=timeToMinutes(normalizeTime(b.endTime)); return !(eMin<=bs||sMin>=be); })) {
+      if (existingForDay.some(b=>{ 
+        const bs=timeToMinutes(normalizeTime(b.startTime)),be=timeToMinutes(normalizeTime(b.endTime));
+        const isConflict = !(eMin<=bs||sMin>=be);
+        if (isConflict) {
+          // Nếu trùng lịch nhưng lại là CÙNG 1 khách hàng, cùng dịch vụ, cùng giờ => Coi như đã đặt thành công (trường hợp retry)
+          if (b.customerId === customerId && b.serviceId === serviceId && normalizeTime(b.startTime) === stTime) {
+            return false; // Không coi là conflict
+          }
+          return true;
+        }
+        return false;
+      })) {
         skippedDates.push(d); continue;
       }
       
@@ -372,6 +385,7 @@ function handleCreateBooking(payload) {
     
     return { success: true, bookings: successfulBookings, skippedDates };
   } catch(e) { return { success: false, error: 'create_booking_failed: ' + e.message }; }
+  finally { lock.releaseLock(); }
 }
 
 function handleGetCustomerBookings(payload) {
@@ -382,7 +396,12 @@ function handleGetCustomerBookings(payload) {
     const services = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES));
     const techs = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS));
     const enriched = bookings.map(b => ({ ...b, bookingDate: normalizeDate(b.bookingDate), startTime: normalizeTime(b.startTime), endTime: normalizeTime(b.endTime), service: services.find(s=>s.serviceId===b.serviceId)||{}, technician: techs.find(t=>t.technicianId===b.technicianId)||{} }));
-    enriched.sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
+    // Sắp xếp theo ngày đặt lịch: ngày gần nhất lên trên
+    enriched.sort((a,b) => {
+      const ad = a.bookingDate + 'T' + a.startTime;
+      const bd = b.bookingDate + 'T' + b.startTime;
+      return ad.localeCompare(bd); // Sắp xếp tăng dần theo thời gian diễn ra
+    });
     return { success: true, bookings: enriched };
   } catch(e) { return { success: false, error: e.message }; }
 }
