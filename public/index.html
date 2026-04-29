@@ -943,7 +943,9 @@ function goStep(n){
       setTimeout(() => {
         const di=document.getElementById('bookDate');
         if(di){
-          state.booking.date=di.value||new Date().toISOString().split('T')[0];
+          const now = new Date();
+          const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+          state.booking.date=di.value||today;
           loadSlots();
         }
       }, 400);
@@ -956,12 +958,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   const dStart=document.getElementById('recStartDate');
   const dEnd=document.getElementById('recEndDate');
   if(di){
-    const today=new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
     di.min=today;di.value=today;
     if(dStart) {dStart.min=today;dStart.value=today;}
     if(dEnd) {dEnd.min=today;
       let nextMonth = new Date(); nextMonth.setMonth(nextMonth.getMonth()+1);
-      dEnd.value=nextMonth.toISOString().split('T')[0];
+      const nextMonthStr = nextMonth.getFullYear() + '-' + String(nextMonth.getMonth()+1).padStart(2,'0') + '-' + String(nextMonth.getDate()).padStart(2,'0');
+      dEnd.value=nextMonthStr;
     }
     state.booking.date=today; // Gán mặc định vào state
     di.addEventListener('change',async()=>{

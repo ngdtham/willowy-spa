@@ -261,12 +261,19 @@ function handleCreateBooking(payload) {
     if (isRecurring) {
       if (!startDate || !endDate || !daysOfWeek || !daysOfWeek.length || !startTime) return { success: false, error: 'missing_fields' };
       stTime = startTime;
-      let curr = new Date(startDate);
-      let end = new Date(endDate);
-      let maxDays = 180; // Giới hạn 6 tháng
+      
+      // Khởi tạo ngày local để tránh lệch múi giờ
+      const [sy, smm, sd] = startDate.split('-').map(Number);
+      const [ey, emm, ed] = endDate.split('-').map(Number);
+      let curr = new Date(sy, smm - 1, sd);
+      let end = new Date(ey, emm - 1, ed);
+      
+      let maxDays = 180;
       while (curr <= end && maxDays > 0) {
         if (daysOfWeek.includes(curr.getDay())) {
-          datesToBook.push(curr.toISOString().split('T')[0]);
+          // Format lại thành YYYY-MM-DD local
+          const dStr = curr.getFullYear() + '-' + String(curr.getMonth()+1).padStart(2,'0') + '-' + String(curr.getDate()).padStart(2,'0');
+          datesToBook.push(dStr);
         }
         curr.setDate(curr.getDate() + 1);
         maxDays--;
@@ -291,12 +298,19 @@ function handleCreateBooking(payload) {
     
     let successfulBookings = [];
     let skippedDates = [];
+    let newSchedulesToCreate = [];
     const now = new Date();
     const schSheet = getSheet(CONFIG.SHEETS.SCHEDULES);
     const existingSchedules = sheetToObjects(schSheet);
     
     for (let d of datesToBook) {
-      if (new Date(d+'T'+stTime+':00') <= now) { skippedDates.push(d); continue; }
+      // So sánh giờ: sử dụng Date(y, m-1, d, hour, min) để đảm bảo local time
+      const [y, mm, dd] = d.split('-').map(Number);
+      const [hh, min] = stTime.split(':').map(Number);
+      const bookingStartDateTime = new Date(y, mm - 1, dd, hh, min);
+      
+      if (bookingStartDateTime <= now) { skippedDates.push(d); continue; }
+      
       const existingForDay = existingBookings.filter(b => String(b.technicianId).trim()===technicianId && normalizeDate(b.bookingDate)===d);
       if (existingForDay.some(b=>{ const bs=timeToMinutes(normalizeTime(b.startTime)),be=timeToMinutes(normalizeTime(b.endTime)); return !(eMin<=bs||sMin>=be); })) {
         skippedDates.push(d); continue;
@@ -304,19 +318,34 @@ function handleCreateBooking(payload) {
       
       const bookingId = generateId('BKG');
       const booking = { bookingId, customerId, serviceId, technicianId, bookingDate: d, startTime: stTime, endTime, status:'confirmed', note: note||'', createdAt: new Date().toISOString() };
-      appendRow(bSheet, getHeaders(bSheet), booking);
-      existingBookings.push(booking);
       successfulBookings.push(booking);
+      existingBookings.push(booking);
       
-      // Auto-create schedule entry
-      try {
-        const existingSch = existingSchedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === d);
-        if (!existingSch) {
-          const newSch = { scheduleId: generateId('SCH'), technicianId: technicianId, date: d, startTime: '08:00', endTime: '22:00', isActive: true };
-          appendRow(schSheet, getHeaders(schSheet), newSch);
-          existingSchedules.push(newSch);
-        }
-      } catch(e) {}
+      // Kiểm tra schedule trong memory
+      const existingSch = existingSchedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === d);
+      if (!existingSch) {
+        const newSch = { scheduleId: generateId('SCH'), technicianId: technicianId, date: d, startTime: '08:00', endTime: '22:00', isActive: true };
+        newSchedulesToCreate.push(newSch);
+        existingSchedules.push(newSch);
+      }
+    }
+    
+    if (successfulBookings.length === 0) return { success: false, error: 'slot_taken' };
+
+    // Batch write Bookings
+    const bHeaders = getHeaders(bSheet);
+    const bValues = successfulBookings.map(b => bHeaders.map(h => {
+      let val = b[h] !== undefined ? b[h] : '';
+      if (h === 'phone') return "'" + val;
+      return val;
+    }));
+    bSheet.getRange(bSheet.getLastRow() + 1, 1, bValues.length, bHeaders.length).setValues(bValues);
+
+    // Batch write Schedules
+    if (newSchedulesToCreate.length > 0) {
+      const schHeaders = getHeaders(schSheet);
+      const schValues = newSchedulesToCreate.map(s => schHeaders.map(h => s[h] !== undefined ? s[h] : ''));
+      schSheet.getRange(schSheet.getLastRow() + 1, 1, schValues.length, schHeaders.length).setValues(schValues);
     }
     
     if (successfulBookings.length === 0) return { success: false, error: 'slot_taken' };
