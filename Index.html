@@ -297,12 +297,12 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
       <button class="lang-btn active" id="btnVI" onclick="setLang('vi')">VI</button>
       <button class="lang-btn" id="btnEN" onclick="setLang('en')">EN</button>
     </div>
+    <button class="nav-btn" id="navAdmin" onclick="showPage('admin')" style="display:inline-flex !important;font-weight:700;color:var(--gold);margin-right:10px" title="Admin Area">Quản trị 🔐</button>
     <button class="nav-btn" id="navLogin" onclick="showPage('auth')"></button>
     <button class="nav-btn" id="navBook" onclick="showPage('booking')" style="display:none"></button>
     <button class="nav-btn" id="navBkgs" onclick="showPage('bookings')" style="display:none"></button>
     <button class="nav-btn" id="navProfile" onclick="showPage('profile')" style="display:none"></button>
     <button class="nav-btn" id="navLogout" onclick="logout()" style="display:none"></button>
-    <button class="nav-btn" id="navAdmin" onclick="showPage('admin')" style="font-size:11px;opacity:.5" title="Admin">🔐</button>
   </div>
 </nav>
 
