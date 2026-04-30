@@ -800,7 +800,8 @@ function showPage(name){
   if(name==='profile') renderProfile();
   if(name==='home') renderHomePage();
   if(name==='admin'){
-    if(!state.sessionToken || !state.customer || !state.customer.isAdmin){
+    // Ensure we have a session AND it's marked as an admin session in the state
+    if(!state.sessionToken || !state.customer || state.customer.userType !== 'admin'){
       showAdminLoginModal();
       return;
     }
@@ -811,22 +812,23 @@ function showPage(name){
 }
 
 function showAdminLoginModal() {
-  const user = prompt("Admin Username:");
-  const pass = prompt("Admin Password:");
+  const user = prompt("Admin Username (willowy_admin):");
+  const pass = prompt("Admin Password (adminadmin):");
   if (!user || !pass) return;
   
-  showLoading(true, 'Authenticating...');
+  showLoading(true, 'Authenticating Admin...');
   api('adminLogin', { username: user, password: pass }).then(res => {
     showLoading(false);
     if (res.success) {
       state.sessionToken = res.token;
-      state.customer = { name: res.admin.name, isAdmin: true };
+      state.customer = { name: res.admin.name, userType: 'admin', isAdmin: true };
       localStorage.setItem('willowySession', res.token);
       localStorage.setItem('willowyCustomer', JSON.stringify(state.customer));
       showToast('Admin access granted', 'success');
       showPage('admin');
+      renderNav();
     } else {
-      showToast('Invalid admin credentials', 'error');
+      showToast('Invalid admin credentials: ' + res.error, 'error');
     }
   });
 }
@@ -1106,6 +1108,12 @@ async function loadSlots(){
   }
   container.innerHTML='<div class="spinner"></div>';
   const res=await api('getAvailableSlots',{technicianId:state.booking.technicianId,date:state.booking.date,serviceId:state.booking.serviceId});
+  showLoading(false);
+  if (!res.success) {
+    const msg = res.error === 'no_schedule' ? (state.lang === 'vi' ? 'Kỹ thuật viên không có lịch làm việc ngày này.' : 'Technician has no schedule for this date.') : 'Lỗi tải giờ trống';
+    container.innerHTML = `<p style="color:#c62828;font-size:12px;padding:10px;text-align:center">${msg}</p>`;
+    return;
+  }
   container.innerHTML=`<div class="slots-grid">${res.slots.map(s=>{
     let cls='slot';
     if(s.isPast) cls+=' past';

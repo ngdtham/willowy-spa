@@ -61,9 +61,17 @@ function doPost(e) {
     };
     if (handlers[action]) {
       const result = handlers[action](payload);
-      // Log errors
+      // Resolve user for logging
+      let user = 'guest';
+      if (payload.token) {
+        const userId = validateSession(payload.token);
+        if (userId) user = userId;
+      } else {
+        user = payload.customerId || payload.adminId || 'unknown';
+      }
+      
       if (result && result.success === false) {
-        logAction('ERROR', action, payload.customerId || payload.adminId || 'unknown', result.error);
+        logAction('ERROR', action, user, result.error);
       }
       return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
     }
@@ -153,16 +161,18 @@ function hashPassword(pw) {
   return Math.abs(h).toString(36).toUpperCase();
 }
 
-function sanitizeCustomer(c) { const {passwordHash, ...safe} = c; return safe; }
+function sanitizeCustomer(c) { const {passwordHash, isAdmin, ...safe} = c; return safe; }
 
 function verifyAdmin(payload) {
   if (!payload || !payload.token) return false;
-  return validateSession(payload.token, 'admin');
+  const userId = validateSession(payload.token, 'admin');
+  return userId !== false;
 }
 
 function verifyCustomer(payload) {
   if (!payload || !payload.token) return false;
-  return validateSession(payload.token, 'customer');
+  const userId = validateSession(payload.token, 'customer');
+  return userId !== false;
 }
 
 function createSession(userId, userType) {
