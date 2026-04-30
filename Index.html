@@ -772,7 +772,7 @@ function renderAll(){
 
 // ── NAV ───────────────────────────────────────────────────────
 function renderNav(){
-  const an=document.getElementById('navAdmin');if(an)an.style.display=state.customer&&state.customer.isAdmin?'inline-flex':'none';
+  const an=document.getElementById('navAdmin');if(an)an.style.display='inline-flex';
   ['navLogin','navBook','navBkgs','navProfile','navLogout'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.textContent=t(id);
@@ -1274,7 +1274,7 @@ async function renderProfile(){
       <div class="stat-chips"><div class="stat-chip"><div class="val">${res.referralCount}</div><div class="lbl">${t('referralCount')}</div></div></div>
     </div>`;
     const adm = document.getElementById('btnProfAdmin');
-    if(adm) adm.style.display = (c.isAdmin ? 'inline-flex' : 'none');
+    if(adm) adm.style.display = (c.userType === 'admin' ? 'inline-flex' : 'none');
     const lout = document.getElementById('btnProfLogout');
     if(lout) lout.textContent = '🚪 ' + t('navLogout');
   }
