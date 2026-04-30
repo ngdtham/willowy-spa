@@ -578,6 +578,7 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
     <div class="form-group"><label class="form-label">Tên (Tiếng Việt)</label><input class="form-control" id="techNameVi" placeholder="Nguyễn Thị Lan"/></div>
     <div class="form-group"><label class="form-label">Tên (English)</label><input class="form-control" id="techNameEn" placeholder="Nguyen Thi Lan"/></div>
     <div class="form-group"><label class="form-label">Số điện thoại</label><input class="form-control" id="techPhone" type="tel" placeholder="0901234567"/></div>
+    <div class="form-group"><label class="form-label">Email (để đồng bộ Google Calendar)</label><input class="form-control" id="techEmail" type="email" placeholder="tech@gmail.com"/></div>
     <div class="form-group"><label class="form-label">Dịch vụ phụ trách (ID cách nhau bằng dấu phẩy)</label><input class="form-control" id="techSpecialties" placeholder="SVC_001,SVC_002"/></div>
     <label class="switch"><input type="checkbox" id="techActive" checked/><div class="switch-track"></div><span>Kích hoạt</span></label>
     <div class="modal-footer">
@@ -1387,11 +1388,12 @@ function openTechModal(techId){
     document.getElementById('techNameVi').value=t2.nameVi||'';
     document.getElementById('techNameEn').value=t2.nameEn||'';
     document.getElementById('techPhone').value=t2.phone||'';
+    document.getElementById('techEmail').value=t2.email||'';
     document.getElementById('techSpecialties').value=t2.specialties||'';
     document.getElementById('techActive').checked=isActiveFE(t2.isActive);
   } else {
     document.getElementById('modalTechTitle').textContent='Thêm kỹ thuật viên';
-    ['techId','techNameVi','techNameEn','techPhone','techSpecialties'].forEach(id=>document.getElementById(id).value='');
+    ['techId','techNameVi','techNameEn','techPhone','techEmail','techSpecialties'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('techActive').checked=true;
   }
   modal.classList.add('show');
@@ -1403,6 +1405,7 @@ async function saveTechnician(){
     nameVi:document.getElementById('techNameVi').value.trim(),
     nameEn:document.getElementById('techNameEn').value.trim(),
     phone:document.getElementById('techPhone').value.trim(),
+    email:document.getElementById('techEmail').value.trim(),
     specialties:document.getElementById('techSpecialties').value.trim(),
     isActive:document.getElementById('techActive').checked
   };

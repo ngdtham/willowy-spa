@@ -15,7 +15,12 @@ const CONFIG = {
   ADMIN: {
     USERNAME: 'willowy_admin',
     PASSWORD: 'adminadmin'
-  }
+  },
+  TELEGRAM: {
+    TOKEN: 'YOUR_TELEGRAM_BOT_TOKEN', // Thay mã Token Bot của bạn vào đây
+    CHAT_ID: 'YOUR_CHAT_ID' // Thay ID Chat của bạn vào đây
+  },
+  SESSION_EXPIRY_MS: 24 * 60 * 60 * 1000 // 24h
 };
 
 function doGet(e) {
@@ -334,12 +339,17 @@ function handleCreateBooking(payload) {
       successfulBookings.push(booking);
       existingBookings.push(booking);
       
-      // Kiểm tra schedule trong memory
-      const existingSch = existingSchedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === d);
       if (!existingSch) {
         const newSch = { scheduleId: generateId('SCH'), technicianId: technicianId, date: d, startTime: '08:00', endTime: '23:00', isActive: true };
         newSchedulesToCreate.push(newSch);
         existingSchedules.push(newSch);
+      }
+      
+      // Notify Telegram & Calendar
+      try {
+        notifyNewBooking(booking);
+      } catch(e) { 
+        console.error('Notification failed', e.message); 
       }
     }
     
@@ -540,3 +550,72 @@ function handleAdminDeleteSchedule(payload) {
   } catch(e) { return { success: false, error: e.message }; }
 }
 
+// ── NOTIFICATIONS ───────────────────────────────────────────
+function notifyNewBooking(booking) {
+  const service = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)).find(s => s.serviceId === booking.serviceId) || {};
+  const tech = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).find(t => t.technicianId === booking.technicianId) || {};
+  const customer = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS)).find(c => c.customerId === booking.customerId) || {};
+  
+  const msg = `🔔 *CÓ LỊCH ĐẶT MỚI!*\n` +
+              `👤 Khách: ${customer.name} (${customer.phone})\n` +
+              `💆 Dịch vụ: ${service.nameVi}\n` +
+              `👩‍⚕️ Kỹ thuật viên: ${tech.nameVi}\n` +
+              `📅 Ngày: ${normalizeDate(booking.bookingDate)}\n` +
+              `⏰ Giờ: ${normalizeTime(booking.startTime)} - ${normalizeTime(booking.endTime)}\n` +
+              `📝 Ghi chú: ${booking.note || 'Không có'}`;
+  
+  sendTelegramMessage(msg);
+  syncToCalendar(booking, service, tech, customer);
+}
+
+function sendTelegramMessage(text) {
+  if (CONFIG.TELEGRAM.TOKEN === 'YOUR_TELEGRAM_BOT_TOKEN') return;
+  const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM.TOKEN}/sendMessage`;
+  const payload = { chat_id: CONFIG.TELEGRAM.CHAT_ID, text: text, parse_mode: 'Markdown' };
+  UrlFetchApp.fetch(url, { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true });
+}
+
+function syncToCalendar(booking, service, tech, customer) {
+  if (!tech.email) return; // Chỉ đồng bộ nếu KTV có email
+  try {
+    const calendar = CalendarApp.getCalendarById(tech.email);
+    if (!calendar) return;
+    
+    const [y, m, d] = booking.bookingDate.split('-').map(Number);
+    const [sh, sm] = normalizeTime(booking.startTime).split(':').map(Number);
+    const [eh, em] = normalizeTime(booking.endTime).split(':').map(Number);
+    
+    const start = new Date(y, m - 1, d, sh, sm);
+    const end = new Date(y, m - 1, d, eh, em);
+    
+    calendar.createEvent(`[Spa] ${service.nameVi} - ${customer.name}`, start, end, {
+      description: `Khách: ${customer.name}\nSĐT: ${customer.phone}\nDịch vụ: ${service.nameVi}\nGhi chú: ${booking.note || ''}`,
+      location: 'Willowy Spa'
+    });
+  } catch(e) { console.error('Calendar Sync Error', e.message); }
+}
+
+// Hàm này bạn sẽ cài đặt Trigger chạy mỗi 10-15 phút 1 lần
+function checkReminders() {
+  const now = new Date();
+  const fifteenMinsLater = new Date(now.getTime() + 15 * 60 * 1000);
+  const bookings = sheetToObjects(getSheet(CONFIG.SHEETS.BOOKINGS)).filter(b => b.status === 'confirmed');
+  
+  for (let b of bookings) {
+    const [y, m, d] = b.bookingDate.split('-').map(Number);
+    const [hh, mm] = normalizeTime(b.startTime).split(':').map(Number);
+    const bStart = new Date(y, m-1, d, hh, mm);
+    
+    // Nếu còn đúng 15-20 phút nữa là đến lịch
+    if (bStart > now && bStart <= fifteenMinsLater) {
+      const tech = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).find(t => t.technicianId === b.technicianId) || {};
+      const service = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)).find(s => s.serviceId === b.serviceId) || {};
+      const msg = `⏰ *NHẮC LỊCH SẮP ĐẾN (15 PHÚT)*\n` +
+                  `👩‍⚕️ KTV: ${tech.nameVi}\n` +
+                  `👤 Khách: ${b.customerId}\n` +
+                  `💆 Dịch vụ: ${service.nameVi}\n` +
+                  `⏰ Giờ: ${normalizeTime(b.startTime)}`;
+      sendTelegramMessage(msg);
+    }
+  }
+}
