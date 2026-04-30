@@ -232,7 +232,7 @@ function handleGetAvailableSlots(payload) {
   } catch(e) {}
   // Use default working hours if no specific schedule exists
   var scheduleStart = techSchedule ? normalizeTime(techSchedule.startTime) : '08:00';
-  var scheduleEnd = techSchedule ? normalizeTime(techSchedule.endTime) : '22:00';
+  var scheduleEnd = techSchedule ? normalizeTime(techSchedule.endTime) : '23:00';
   return { success: true, slots: generateTimeSlots(scheduleStart, scheduleEnd, duration, existingBookings, date) };
 }
 
@@ -337,7 +337,7 @@ function handleCreateBooking(payload) {
       // Kiểm tra schedule trong memory
       const existingSch = existingSchedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === d);
       if (!existingSch) {
-        const newSch = { scheduleId: generateId('SCH'), technicianId: technicianId, date: d, startTime: '08:00', endTime: '22:00', isActive: true };
+        const newSch = { scheduleId: generateId('SCH'), technicianId: technicianId, date: d, startTime: '08:00', endTime: '23:00', isActive: true };
         newSchedulesToCreate.push(newSch);
         existingSchedules.push(newSch);
       }
