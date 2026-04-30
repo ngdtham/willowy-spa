@@ -296,13 +296,13 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
     <div class="lang-toggle">
       <button class="lang-btn active" id="btnVI" onclick="setLang('vi')">VI</button>
       <button class="lang-btn" id="btnEN" onclick="setLang('en')">EN</button>
-      <button class="lang-btn" id="navAdmin" onclick="showPage('admin')" style="background:var(--deep);color:var(--gold);font-weight:700;border-left:1px solid var(--gold);padding:4px 15px" title="Admin Area">AD 🔐</button>
     </div>
     <button class="nav-btn" id="navLogin" onclick="showPage('auth')"></button>
     <button class="nav-btn" id="navBook" onclick="showPage('booking')" style="display:none"></button>
     <button class="nav-btn" id="navBkgs" onclick="showPage('bookings')" style="display:none"></button>
     <button class="nav-btn" id="navProfile" onclick="showPage('profile')" style="display:none"></button>
     <button class="nav-btn" id="navLogout" onclick="logout()" style="display:none"></button>
+    <button class="nav-btn" id="navAdmin" onclick="showPage('admin')" style="font-size:11px;opacity:.5" title="Admin">🔐</button>
   </div>
 </nav>
 
@@ -350,74 +350,65 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
   </div>
 </div>
 
-<!-- BOOKING WIZARD -->
+<!-- BOOKING -->
 <div class="page" id="pageBooking">
-  <div class="container" style="padding-top:10px">
-    <div class="card">
-      <h3 id="bookingTitle" style="margin-bottom:14px;font-size:18px"></h3>
-      <div class="steps" id="stepIndicator"></div>
-      
-      <!-- Step 1: Service -->
-      <div class="step-content active" id="step1">
-        <div class="form-group"><label class="form-label" id="s1Label"></label><div class="services-grid" id="serviceList"></div></div>
+  <div class="container">
+    <h2 class="section-title" style="margin-bottom:20px" id="bookingTitle"></h2>
+    <div class="steps" id="stepIndicator"></div>
+    <div class="step-content active" id="step1">
+      <div class="card"><p class="form-label" id="s1Label" style="margin-bottom:14px"></p><div class="services-grid" id="serviceList"></div></div>
+    </div>
+    <div class="step-content" id="step2">
+      <div class="card"><p class="form-label" id="s2Label" style="margin-bottom:14px"></p><div class="tech-grid" id="techList"></div></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-outline" onclick="goStep(1)" id="btnBack2"></button>
+        <button class="btn btn-primary" onclick="goStep(3)" id="btnNext2" disabled></button>
       </div>
-      
-      <!-- Step 2: Tech -->
-      <div class="step-content" id="step2">
-        <div class="form-group"><label class="form-label" id="s2Label"></label><div class="tech-grid" id="techList"></div></div>
-        <div class="modal-footer" style="border:none;margin-top:20px;padding:0">
-          <button class="btn btn-outline" onclick="goStep(1)" id="btnBack2"></button>
-          <button class="btn btn-primary" onclick="goStep(3)" id="btnNext2" disabled></button>
+    </div>
+    <div class="step-content" id="step3">
+      <div class="card">
+        <div class="tabs" style="margin-bottom:14px">
+          <button class="tab active" id="tabOneTime" onclick="setRecurring(false)">Đặt 1 buổi</button>
+          <button class="tab" id="tabRecurring" onclick="setRecurring(true)">Đặt định kỳ</button>
         </div>
-      </div>
-      
-      <!-- Step 3: DateTime -->
-      <div class="step-content" id="step3">
-        <div class="tabs">
-          <button class="tab active" onclick="setRecurring(false)" id="tabOneTime">Một lần</button>
-          <button class="tab" onclick="setRecurring(true)" id="tabRecurring">Định kỳ</button>
-        </div>
-        
         <div id="uiOneTime">
-          <div class="form-group"><label class="form-label" id="s3DateLabel"></label><input class="form-control" type="date" id="bookDate"/></div>
-          <div class="form-group"><label class="form-label" id="s3SlotLabel"></label><div id="slotsContainer"></div></div>
+          <div class="form-group"><label class="form-label" id="s3DateLabel"></label><input class="form-control" id="bookDate" type="date"/></div>
+          <div class="form-group"><label class="form-label" id="s3SlotLabel"></label><div id="slotsContainer"><p style="color:var(--sub);font-size:12px" id="selectDateHint"></p></div></div>
         </div>
-        
         <div id="uiRecurring" style="display:none">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-            <div class="form-group"><label class="form-label">Từ ngày</label><input class="form-control" type="date" id="recStartDate"/></div>
-            <div class="form-group"><label class="form-label">Đến ngày</label><input class="form-control" type="date" id="recEndDate"/></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+            <div><label class="form-label">Ngày bắt đầu</label><input class="form-control" id="recStartDate" type="date" oninput="updateNextBtn()" onchange="updateNextBtn()"/></div>
+            <div><label class="form-label">Ngày kết thúc</label><input class="form-control" id="recEndDate" type="date" oninput="updateNextBtn()" onchange="updateNextBtn()"/></div>
           </div>
           <div class="form-group">
-            <label class="form-label">Thứ trong tuần</label>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button class="btn btn-outline btn-sm rec-day" data-day="1" onclick="toggleRecDay(this)">T2</button>
-              <button class="btn btn-outline btn-sm rec-day" data-day="2" onclick="toggleRecDay(this)">T3</button>
-              <button class="btn btn-outline btn-sm rec-day" data-day="3" onclick="toggleRecDay(this)">T4</button>
-              <button class="btn btn-outline btn-sm rec-day" data-day="4" onclick="toggleRecDay(this)">T5</button>
-              <button class="btn btn-outline btn-sm rec-day" data-day="5" onclick="toggleRecDay(this)">T6</button>
-              <button class="btn btn-outline btn-sm rec-day" data-day="6" onclick="toggleRecDay(this)">T7</button>
-              <button class="btn btn-outline btn-sm rec-day" data-day="0" onclick="toggleRecDay(this)">CN</button>
+            <label class="form-label">Chọn thứ trong tuần</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap" id="recDays">
+              <button class="btn btn-outline rec-day" data-day="1" onclick="toggleRecDay(this)">T2</button>
+              <button class="btn btn-outline rec-day" data-day="2" onclick="toggleRecDay(this)">T3</button>
+              <button class="btn btn-outline rec-day" data-day="3" onclick="toggleRecDay(this)">T4</button>
+              <button class="btn btn-outline rec-day" data-day="4" onclick="toggleRecDay(this)">T5</button>
+              <button class="btn btn-outline rec-day" data-day="5" onclick="toggleRecDay(this)">T6</button>
+              <button class="btn btn-outline rec-day" data-day="6" onclick="toggleRecDay(this)">T7</button>
+              <button class="btn btn-outline rec-day" data-day="0" onclick="toggleRecDay(this)">CN</button>
             </div>
           </div>
-          <div class="form-group"><label class="form-label">Giờ cố định</label><input class="form-control" type="time" id="recTime" value="09:00"/></div>
-          <p style="font-size:11px;color:var(--sub);margin-top:-8px">Hệ thống sẽ tự động bỏ qua các ngày bị trùng lịch.</p>
+          <div class="form-group">
+            <label class="form-label">Chọn giờ</label>
+            <input class="form-control" id="recTime" type="time" value="09:00" oninput="updateNextBtn()" onchange="updateNextBtn()"/>
+          </div>
         </div>
-
-        <div class="form-group" style="margin-top:20px"><label class="form-label" id="s3NoteLabel"></label><textarea class="form-control" id="bookNote" rows="2" placeholder="Yêu cầu đặc biệt..."></textarea></div>
-        <div class="modal-footer" style="border:none;margin-top:20px;padding:0">
-          <button class="btn btn-outline" onclick="goStep(2)" id="btnBack3"></button>
-          <button class="btn btn-primary" onclick="goStep(4)" id="btnNext3" disabled></button>
-        </div>
+        <div class="form-group"><label class="form-label" id="s3NoteLabel"></label><textarea class="form-control" id="bookNote" rows="2" style="resize:none"></textarea></div>
       </div>
-      
-      <!-- Step 4: Confirm -->
-      <div class="step-content" id="step4">
-        <div id="bookingSummary"></div>
-        <div class="modal-footer" style="border:none;margin-top:24px;padding:0">
-          <button class="btn btn-outline" onclick="goStep(3)" id="btnBack4"></button>
-          <button class="btn btn-primary" onclick="confirmBooking()" id="btnConfirm" style="flex:1"></button>
-        </div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-outline" onclick="goStep(2)" id="btnBack3"></button>
+        <button class="btn btn-primary" onclick="goStep(4)" id="btnNext3" disabled></button>
+      </div>
+    </div>
+    <div class="step-content" id="step4">
+      <div class="card"><h3 id="s4Title" style="font-size:16px;font-weight:700;margin-bottom:18px;color:var(--deep)"></h3><div id="bookingSummary"></div></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-outline" onclick="goStep(3)" id="btnBack4"></button>
+        <button class="btn btn-primary" onclick="confirmBooking()" id="btnConfirm"></button>
       </div>
     </div>
   </div>
@@ -425,11 +416,11 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 
 <!-- MY BOOKINGS -->
 <div class="page" id="pageBookings">
-  <div class="container" style="padding-top:10px">
-    <h3 id="myBkTitle" style="margin-bottom:14px;font-size:18px"></h3>
-    <div class="tabs">
+  <div class="container">
+    <h2 class="section-title" style="margin-bottom:20px" id="myBkTitle"></h2>
+    <div class="tabs" style="margin-bottom:14px">
       <button class="tab active" id="tabUpcoming" onclick="switchBookingTab('upcoming')">Sắp tới</button>
-      <button class="tab" id="tabPast" onclick="switchBookingTab('past')">Lịch sử</button>
+      <button class="tab" id="tabPast" onclick="switchBookingTab('past')">Đã qua</button>
     </div>
     <div id="bookingsList"></div>
   </div>
@@ -437,188 +428,274 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 
 <!-- PROFILE -->
 <div class="page" id="pageProfile">
-  <div class="container" style="padding-top:10px">
+  <div class="container">
     <div class="card" id="profileCard"></div>
-    <div class="card" id="referralCard" style="margin-top:14px"></div>
-    <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
-      <button class="btn btn-outline btn-block" id="btnProfAdmin" style="display:none" onclick="showPage('admin')">🔐 Quản trị viên</button>
-      <button class="btn btn-outline btn-block" id="btnProfLogout" onclick="logout()" style="color:#c62828;border-color:#fdecea"></button>
+    <div class="card" style="margin-top:14px" id="referralCard"></div>
+    <div style="margin-top:20px;padding:0 10px;display:flex;flex-direction:column;gap:10px" id="profileActions">
+      <button class="btn btn-outline btn-block" onclick="showPage('admin')" id="btnProfAdmin" style="display:none;font-size:12px;opacity:0.7">🔐 Quản lý hệ thống (Admin)</button>
+      <button class="btn btn-outline btn-block" onclick="logout()" style="color:#e57373;border-color:#e57373" id="btnProfLogout"></button>
     </div>
   </div>
 </div>
 
 <!-- ADMIN -->
 <div class="page" id="pageAdmin">
-  <div class="admin-layout" id="adminDashboard" style="display:none">
-    <div class="admin-sidebar">
-      <div class="admin-sidebar-logo"><span>WILLOWY SPA</span><small>Management System</small></div>
-      <div class="admin-nav-item active" id="anav-bookings" onclick="switchAdminPanel('bookings')"><svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V6h14v14z"/><path d="M7 10h10v2H7zm0 4h10v2H7z"/></svg>Lịch đặt</div>
-      <div class="admin-nav-item" id="anav-services" onclick="switchAdminPanel('services')"><svg viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM10 4h4v2h-4V4z"/></svg>Dịch vụ</div>
-      <div class="admin-nav-item" id="anav-technicians" onclick="switchAdminPanel('technicians')"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>Kỹ thuật viên</div>
-      <div class="admin-nav-item" id="anav-schedules" onclick="switchAdminPanel('schedules')"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>Lịch làm việc</div>
-      <div style="margin-top:auto;padding:10px 20px"><button class="btn btn-outline btn-block btn-sm" onclick="logout()" style="color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.1)">Thoát Admin</button></div>
-    </div>
-    
-    <div class="admin-main">
-      <!-- Admin: Bookings -->
-      <div class="admin-panel active" id="panel-bookings">
-        <div class="admin-header">
-          <div><div class="admin-title">Quản lý lịch đặt</div><div class="admin-subtitle">Tất cả lịch hẹn của khách hàng</div></div>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-outline btn-sm" onclick="runSetup()" title="Initialize Sheets/Admin">⚙️ Setup</button>
+  <div id="adminDashboard" style="display:none;flex:1;flex-direction:column">
+    <div class="admin-layout">
+      <!-- Sidebar -->
+      <div class="admin-sidebar">
+        <div class="admin-sidebar-logo"><span>🪷 Willowy Spa</span><small>Admin Panel</small></div>
+        <div class="admin-nav-item active" onclick="switchAdminPanel('bookings')" id="anav-bookings">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Lịch đặt
+        </div>
+        <div class="admin-nav-item" onclick="switchAdminPanel('services')" id="anav-services">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Dịch vụ
+        </div>
+        <div class="admin-nav-item" onclick="switchAdminPanel('technicians')" id="anav-technicians">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Kỹ thuật viên
+        </div>
+        <div class="admin-nav-item" onclick="switchAdminPanel('schedules')" id="anav-schedules">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Lịch làm việc
+        </div>
+        <div style="flex:1"></div>
+        <div class="admin-nav-item" onclick="showPage('home')" style="color:var(--gold)">🏠 Quay lại Web</div>
+      </div>
+      <!-- Main -->
+      <div class="admin-main">
+
+        <!-- BOOKINGS PANEL -->
+        <div class="admin-panel active" id="panel-bookings">
+          <div class="admin-header">
+            <div><div class="admin-title">Quản lý lịch đặt</div><div class="admin-subtitle">Tất cả lịch hẹn của khách hàng</div></div>
             <button class="btn btn-primary btn-sm" onclick="loadAdminBookings()">↻ Làm mới</button>
           </div>
+          <div id="adminStats" class="admin-stats"></div>
+          <div class="admin-filters">
+            <select class="form-control" id="filterStatus" onchange="filterBookings()">
+              <option value="">Tất cả trạng thái</option>
+              <option value="confirmed">Đã xác nhận</option>
+              <option value="cancelled">Đã hủy</option>
+              <option value="pending">Chờ xử lý</option>
+            </select>
+            <input class="form-control" id="filterDate" type="date" onchange="filterBookings()" placeholder="Lọc theo ngày"/>
+            <input class="form-control" id="filterSearch" type="text" oninput="filterBookings()" placeholder="Tìm tên khách..."/>
+          </div>
+          <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr>
+              <th>Khách hàng</th><th>Dịch vụ</th><th>Kỹ thuật viên</th>
+              <th>Ngày</th><th>Giờ</th><th>Trạng thái</th>
+            </tr></thead>
+            <tbody id="adminBookingsBody"></tbody>
+          </table></div>
         </div>
-        <div id="adminStats" class="admin-stats"></div>
-        <div class="admin-filters">
-          <input class="form-control" type="text" id="filterSearch" placeholder="Tên/SĐT khách..." oninput="filterBookings()"/>
-          <select class="form-control" id="filterStatus" onchange="filterBookings()"><option value="">Tất cả trạng thái</option><option value="confirmed">Đã xác nhận</option><option value="cancelled">Đã hủy</option></select>
-          <input class="form-control" type="date" id="filterDate" onchange="filterBookings()"/>
-        </div>
-        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Khách hàng</th><th>Dịch vụ</th><th>KTV</th><th>Ngày</th><th>Giờ</th><th>Trạng thái</th></tr></thead><tbody id="adminBookingsBody"></tbody></table></div>
-      </div>
-      
-      <!-- Admin: Services -->
-      <div class="admin-panel" id="panel-services">
-        <div class="admin-header">
-          <div><div class="admin-title">Danh mục dịch vụ</div><div class="admin-subtitle">Quản lý menu và giá</div></div>
-          <button class="btn btn-primary btn-sm" onclick="openServiceModal()">+ Thêm dịch vụ</button>
-        </div>
-        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Tên (VI)</th><th>Tên (EN)</th><th>Thời gian</th><th>Giá</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="adminServicesBody"></tbody></table></div>
-      </div>
-      
-      <!-- Admin: Technicians -->
-      <div class="admin-panel" id="panel-technicians">
-        <div class="admin-header">
-          <div><div class="admin-title">Đội ngũ kỹ thuật viên</div><div class="admin-subtitle">Quản lý nhân sự và tay nghề</div></div>
-          <button class="btn btn-primary btn-sm" onclick="openTechModal()">+ Thêm KTV</button>
-        </div>
-        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Tên (VI)</th><th>Tên (EN)</th><th>Số điện thoại</th><th>Chuyên môn</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="adminTechsBody"></tbody></table></div>
-      </div>
 
-      <!-- Admin: Schedules -->
-      <div class="admin-panel" id="panel-schedules">
-        <div class="admin-header">
-          <div><div class="admin-title">Lịch làm việc</div><div class="admin-subtitle">Phân ca trực cho kỹ thuật viên</div></div>
-          <button class="btn btn-primary btn-sm" onclick="openScheduleModal()">+ Đăng ký lịch</button>
+        <!-- SERVICES PANEL -->
+        <div class="admin-panel" id="panel-services">
+          <div class="admin-header">
+            <div><div class="admin-title">Quản lý dịch vụ</div><div class="admin-subtitle">Thêm, sửa, xóa dịch vụ</div></div>
+            <button class="btn btn-primary btn-sm" onclick="openServiceModal()">+ Thêm dịch vụ</button>
+          </div>
+          <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr><th>Tên dịch vụ (VI)</th><th>Tên (EN)</th><th>Thời gian</th><th>Giá</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="adminServicesBody"></tbody>
+          </table></div>
         </div>
-        <div class="admin-filters">
-          <select class="form-control" id="filterSchTech" onchange="filterSchedules()"></select>
-          <input class="form-control" type="date" id="filterSchDate" onchange="filterSchedules()"/>
+
+        <!-- TECHNICIANS PANEL -->
+        <div class="admin-panel" id="panel-technicians">
+          <div class="admin-header">
+            <div><div class="admin-title">Quản lý kỹ thuật viên</div><div class="admin-subtitle">Thêm, sửa, xóa kỹ thuật viên</div></div>
+            <button class="btn btn-primary btn-sm" onclick="openTechModal()">+ Thêm KTV</button>
+          </div>
+          <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr><th>Tên (VI)</th><th>Tên (EN)</th><th>SĐT</th><th>Dịch vụ phụ trách</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="adminTechsBody"></tbody>
+          </table></div>
         </div>
-        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Ngày</th><th>KTV</th><th>Bắt đầu</th><th>Kết thúc</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="adminSchedulesBody"></tbody></table></div>
-      </div>
+
+        <!-- SCHEDULES PANEL -->
+        <div class="admin-panel" id="panel-schedules">
+          <div class="admin-header">
+            <div><div class="admin-title">Lịch làm việc</div><div class="admin-subtitle">Quản lý lịch theo ngày cụ thể</div></div>
+            <button class="btn btn-primary btn-sm" onclick="openScheduleModal()">+ Thêm lịch</button>
+          </div>
+          <div class="admin-filters">
+            <input class="form-control" id="filterSchDate" type="date" onchange="filterSchedules()" placeholder="Lọc ngày"/>
+            <select class="form-control" id="filterSchTech" onchange="filterSchedules()"><option value="">Tất cả KTV</option></select>
+          </div>
+          <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr><th>Ngày</th><th>Kỹ thuật viên</th><th>Giờ bắt đầu</th><th>Giờ kết thúc</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="adminSchedulesBody"></tbody>
+          </table></div>
+        </div>
+
+      </div><!-- /admin-main -->
+    </div><!-- /admin-layout -->
+  </div><!-- /adminDashboard -->
+</div><!-- /pageAdmin -->
+</div><!-- /app -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bnav-btn active" id="bnHome" onclick="goHome()">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span id="bnHomeLabel"></span>
+    </button>
+    <button class="bnav-btn" id="bnBook" onclick="showPage('booking')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span id="bnBookLabel"></span>
+    </button>
+    <button class="bnav-btn" id="bnBkgs" onclick="showPage('bookings')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span id="bnBkgsLabel"></span>
+    </button>
+    <button class="bnav-btn" id="bnProf" onclick="showPage('profile')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span id="bnProfLabel"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- MODALS -->
+<div class="modal-bg" id="modalService">
+  <div class="modal">
+    <h3 id="modalSvcTitle">Dịch vụ</h3>
+    <input type="hidden" id="svcId"/>
+    <div class="form-group"><label class="form-label">Tên dịch vụ (Tiếng Việt)</label><input class="form-control" id="svcNameVi" placeholder="Gội đầu thư giãn"/></div>
+    <div class="form-group"><label class="form-label">Tên dịch vụ (English)</label><input class="form-control" id="svcNameEn" placeholder="Relaxing Hair Wash"/></div>
+    <div class="form-group"><label class="form-label">Thời gian (phút)</label><input class="form-control" id="svcDuration" type="number" placeholder="45"/></div>
+    <div class="form-group"><label class="form-label">Giá (VNĐ)</label><input class="form-control" id="svcPrice" type="number" placeholder="150000"/></div>
+    <div class="form-group"><label class="form-label">Mô tả</label><textarea class="form-control" id="svcDesc" rows="2" style="resize:none"></textarea></div>
+    <label class="switch"><input type="checkbox" id="svcActive" checked/><div class="switch-track"></div><span>Kích hoạt</span></label>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalService')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveService()">Lưu</button>
     </div>
   </div>
 </div>
-
-<!-- MODALS -->
-<div class="modal-bg" id="modalService"><div class="modal"><h3 id="modalSvcTitle"></h3><div class="form-group"><label class="form-label">ID dịch vụ (VD: SVC_001)</label><input class="form-control" id="svcId"/></div><div class="form-group"><label class="form-label">Tên (Tiếng Việt)</label><input class="form-control" id="svcNameVi" placeholder="Gội đầu thảo dược"/></div><div class="form-group"><label class="form-label">Tên (English)</label><input class="form-control" id="svcNameEn" placeholder="Herbal Head Wash"/></div><div class="form-group"><label class="form-label">Thời lượng (phút)</label><input class="form-control" id="svcDuration" type="number" placeholder="45"/></div><div class="form-group"><label class="form-label">Giá (VNĐ)</label><input class="form-control" id="svcPrice" type="number" placeholder="150000"/></div><div class="form-group"><label class="form-label">Mô tả</label><textarea class="form-control" id="svcDesc" rows="2"></textarea></div><label class="switch"><input type="checkbox" id="svcActive" checked/><div class="switch-track"></div><span>Kích hoạt</span></label><div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalService')">Hủy</button><button class="btn btn-primary" onclick="saveService()">Lưu lại</button></div></div></div>
 
 <div class="modal-bg" id="modalTech">
   <div class="modal">
-    <h3 id="modalTechTitle"></h3>
-    <div class="form-group"><label class="form-label">ID KTV (VD: TECH_001)</label><input class="form-control" id="techId"/></div>
+    <h3 id="modalTechTitle">Kỹ thuật viên</h3>
+    <input type="hidden" id="techId"/>
     <div class="form-group"><label class="form-label">Tên (Tiếng Việt)</label><input class="form-control" id="techNameVi" placeholder="Nguyễn Thị Lan"/></div>
     <div class="form-group"><label class="form-label">Tên (English)</label><input class="form-control" id="techNameEn" placeholder="Nguyen Thi Lan"/></div>
     <div class="form-group"><label class="form-label">Số điện thoại</label><input class="form-control" id="techPhone" type="tel" placeholder="0901234567"/></div>
-    <div class="form-group">
-      <label class="form-label">Dịch vụ phụ trách</label>
-      <div id="techSpecialtiesList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:150px;overflow-y:auto;padding:10px;border:1.5px solid var(--border);border-radius:var(--r);background:var(--bg)">
-        <!-- Loaded dynamically -->
-      </div>
-      <input type="hidden" id="techSpecialties"/>
-    </div>
+    <div class="form-group"><label class="form-label">Dịch vụ phụ trách (ID cách nhau bằng dấu phẩy)</label><input class="form-control" id="techSpecialties" placeholder="SVC_001,SVC_002"/></div>
     <label class="switch"><input type="checkbox" id="techActive" checked/><div class="switch-track"></div><span>Kích hoạt</span></label>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modalTech')">Hủy</button>
-      <button class="btn btn-primary" onclick="saveTechnician()">Lưu lại</button>
+      <button class="btn btn-primary" onclick="saveTechnician()">Lưu</button>
     </div>
   </div>
 </div>
 
-<div class="modal-bg" id="modalSchedule"><div class="modal"><h3>Cài đặt lịch làm việc</h3><div class="form-group"><label class="form-label">Kỹ thuật viên</label><select class="form-control" id="schTech"></select></div><div class="form-group"><label class="form-label">Ngày trực</label><input class="form-control" type="date" id="schDate"/></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="form-group"><label class="form-label">Bắt đầu</label><input class="form-control" type="time" id="schStart" value="09:00"/></div><div class="form-group"><label class="form-label">Kết thúc</label><input class="form-control" type="time" id="schEnd" value="22:00"/></div></div><input type="hidden" id="schId"/><label class="switch"><input type="checkbox" id="schActive" checked/><div class="switch-track"></div><span>Kích hoạt</span></label><div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalSchedule')">Hủy</button><button class="btn btn-primary" onclick="saveSchedule()">Lưu lại</button></div></div></div>
-
-<!-- BOTTOM NAV (Mobile) -->
-<div class="bottom-nav">
-  <div class="bottom-nav-inner">
-    <button class="bnav-btn active" id="bnHome" onclick="showPage('home')"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span id="bnHomeLabel"></span></button>
-    <button class="bnav-btn" id="bnBook" onclick="showPage('booking')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span id="bnBookLabel"></span></button>
-    <button class="bnav-btn" id="bnBkgs" onclick="showPage('bookings')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span id="bnBkgsLabel"></span></button>
-    <button class="bnav-btn" id="bnProf" onclick="showPage('profile')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span id="bnProfLabel"></span></button>
+<div class="modal-bg" id="modalSchedule">
+  <div class="modal">
+    <h3>Lịch làm việc</h3>
+    <input type="hidden" id="schId"/>
+    <div class="form-group"><label class="form-label">Kỹ thuật viên</label><select class="form-control" id="schTech"></select></div>
+    <div class="form-group"><label class="form-label">Ngày làm việc</label><input class="form-control" id="schDate" type="date"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label class="form-label">Giờ bắt đầu</label><input class="form-control" id="schStart" type="time" value="09:00"/></div>
+      <div class="form-group"><label class="form-label">Giờ kết thúc</label><input class="form-control" id="schEnd" type="time" value="20:00"/></div>
+    </div>
+    <label class="switch"><input type="checkbox" id="schActive" checked/><div class="switch-track"></div><span>Kích hoạt</span></label>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalSchedule')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveSchedule()">Lưu</button>
+    </div>
   </div>
 </div>
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
-const API_URL = 'https://script.google.com/macros/s/AKfycbzyfSdGC1HTLaZWeU5HeuyEuCWfFdgcCA9sOWeliJ42W4oH5ishONdenSnc0ZSSyyg5/exec'; // Thay URL web app GAS của bạn
+const API_URL = 'https://script.google.com/macros/s/AKfycbzyfSdGC1HTLaZWeU5HeuyEuCWfFdgcCA9sOWeliJ42W4oH5ishONdenSnc0ZSSyyg5/exec'; // << THAY THẾ URL CỦA BẠN
 
+// ── I18N ──────────────────────────────────────────────────────
+const I18N = {
+  vi:{
+    heroSub:'Thư giãn & Tái tạo năng lượng',heroTitle:'Khoảnh khắc<br><em>bình yên</em> của bạn',
+    heroDesc:'Trải nghiệm dịch vụ chăm sóc tóc và massage thư giãn đẳng cấp tại Willowy Spa.',
+    heroCta:'Đặt lịch ngay →',svcTitle:'Dịch vụ của chúng tôi',svcLink:'Xem tất cả →',
+    authSubtitle:'Đăng nhập để đặt lịch và nhận ưu đãi',
+    tabLogin:'Đăng nhập',tabRegister:'Đăng ký',
+    lbPhone:'Số điện thoại',lbPwd:'Mật khẩu',lbName:'Họ và tên',lbPhoneR:'Số điện thoại',
+    lbEmail:'Email (tùy chọn)',lbPwdR:'Mật khẩu',lbRef:'Mã giới thiệu',
+    btnLogin:'Đăng nhập',btnRegister:'Tạo tài khoản',
+    bookingTitle:'Đặt lịch hẹn',steps:['Dịch vụ','Kỹ thuật viên','Ngày & Giờ','Xác nhận'],
+    s1Label:'Chọn dịch vụ',s2Label:'Chọn kỹ thuật viên',s3DateLabel:'Chọn ngày',
+    s3SlotLabel:'Chọn giờ',s3NoteLabel:'Ghi chú (tùy chọn)',selectDateHint:'Vui lòng chọn ngày để xem giờ trống',
+    s4Title:'Xác nhận đặt lịch',btnBack:'← Quay lại',btnNext:'Tiếp theo →',btnConfirm:'✓ Xác nhận đặt lịch',
+    myBkTitle:'Lịch đặt của tôi',
+    navLogin:'Đăng nhập',navBook:'Đặt lịch',navBkgs:'Lịch hẹn',navProfile:'Tài khoản',navLogout:'Đăng xuất',
+    bnHome:'Trang chủ',bnBook:'Đặt lịch',bnBkgs:'Lịch hẹn',bnProf:'Tài khoản',
+    min:'phút',sum_service:'Dịch vụ',sum_tech:'Kỹ thuật viên',sum_date:'Ngày',sum_time:'Giờ',sum_price:'Giá',
+    cancelBtn:'Hủy',confirmCancel:'Bạn chắc chắn muốn hủy lịch này?',
+    referralTitle:'Mã giới thiệu của bạn',referralDesc:'Chia sẻ QR code để giới thiệu bạn bè',
+    referralCount:'Đã giới thiệu',totalVisit:'Tổng lượt',
+    noBookings:'Chưa có lịch đặt nào',noBookingsDesc:'Hãy đặt lịch dịch vụ đầu tiên!',
+    loading:'Đang tải...',saving:'Đang xử lý...',
+    errPhone:'Vui lòng nhập số điện thoại',errPwd:'Vui lòng nhập mật khẩu',
+    errName:'Vui lòng nhập tên',errPwd6:'Mật khẩu tối thiểu 6 ký tự',
+    errPhoneExist:'Số điện thoại đã tồn tại',errWrongPwd:'Sai mật khẩu',errNotFound:'Tài khoản không tồn tại',
+    errSlotTaken:'Giờ này đã được đặt',errPast:'Không thể đặt giờ đã qua',
+    successLogin:'Đăng nhập thành công!',successRegister:'Tạo tài khoản thành công!',
+    successBooking:'Đặt lịch thành công! 🎉',successCancel:'Đã hủy lịch',
+    needLogin:'Vui lòng đăng nhập để đặt lịch',noSlot:'Không có giờ trống cho ngày này',copyCode:'Đã sao chép mã!',
+    logout:'Đăng xuất'
+  },
+  en:{
+    heroSub:'Relax & Recharge',heroTitle:'Your moment of<br><em>serenity</em>',
+    heroDesc:'Experience premium hair care and relaxing massage services at Willowy Spa.',
+    heroCta:'Book Now →',svcTitle:'Our Services',svcLink:'View all →',
+    authSubtitle:'Sign in to book and earn rewards',
+    tabLogin:'Sign In',tabRegister:'Register',
+    lbPhone:'Phone Number',lbPwd:'Password',lbName:'Full Name',lbPhoneR:'Phone Number',
+    lbEmail:'Email (optional)',lbPwdR:'Password',lbRef:'Referral Code',
+    btnLogin:'Sign In',btnRegister:'Create Account',
+    bookingTitle:'Book Appointment',steps:['Service','Technician','Date & Time','Confirm'],
+    s1Label:'Select a service',s2Label:'Choose a technician',s3DateLabel:'Select date',
+    s3SlotLabel:'Select time slot',s3NoteLabel:'Notes (optional)',selectDateHint:'Select a date to see available slots',
+    s4Title:'Confirm Booking',btnBack:'← Back',btnNext:'Next →',btnConfirm:'✓ Confirm Booking',
+    myBkTitle:'My Bookings',
+    navLogin:'Sign In',navBook:'Book',navBkgs:'Bookings',navProfile:'Account',navLogout:'Sign Out',
+    bnHome:'Home',bnBook:'Book',bnBkgs:'Bookings',bnProf:'Profile',
+    min:'min',sum_service:'Service',sum_tech:'Technician',sum_date:'Date',sum_time:'Time',sum_price:'Price',
+    cancelBtn:'Cancel',confirmCancel:'Cancel this booking?',
+    referralTitle:'Your Referral Code',referralDesc:'Share this QR to refer friends',
+    referralCount:'Referrals',totalVisit:'Total Visits',
+    noBookings:'No bookings yet',noBookingsDesc:'Book your first service today!',
+    loading:'Loading...',saving:'Processing...',
+    errPhone:'Please enter phone number',errPwd:'Please enter password',
+    errName:'Please enter your name',errPwd6:'Password must be 6+ characters',
+    errPhoneExist:'Phone already exists',errWrongPwd:'Wrong password',errNotFound:'Account not found',
+    errSlotTaken:'Slot is taken',errPast:'Cannot book in the past',
+    successLogin:'Signed in!',successRegister:'Account created!',
+    successBooking:'Booking confirmed! 🎉',successCancel:'Booking cancelled',
+    needLogin:'Please sign in to book',noSlot:'No slots available for this date',copyCode:'Copied!',
+    logout:'Logout'
+  }
+};
+
+// ── STATE ─────────────────────────────────────────────────────
 let state = {
   lang:'vi', customer:null, services:[], technicians:[],
   booking:{serviceId:null,technicianId:null,date:null,startTime:null,endTime:null,note:'',isRecurring:false,recStartDate:'',recEndDate:'',recDays:[],recTime:'09:00'},
   currentStep:1, currentPage:'home',
-  admin:{token:null, bookings:[], services:[], technicians:[], schedules:[]},
-  sessionToken: localStorage.getItem('willowySession') || null
+  admin:{token:null, bookings:[], services:[], technicians:[], schedules:[]}
 };
 
 // ── UTILS ─────────────────────────────────────────────────────
-const t = (k) => {
-  const dict = {
-    vi:{
-      navAdmin: 'Quản trị 🔐',
-      navLogin:'Đăng nhập', navBook:'Đặt lịch', navBkgs:'Lịch hẹn', navProfile:'Tài khoản', navLogout:'Đăng xuất',
-      heroTitle:'Khoảnh khắc <em>bình yên</em> của bạn', heroSub:'Thư giãn & Tái tạo năng lượng',
-      heroDesc:'Trải nghiệm dịch vụ chăm sóc tóc và massage thư giãn đẳng cấp tại Willowy Spa.',
-      heroCta:'Đặt lịch ngay →', svcTitle:'Dịch vụ của chúng tôi', svcLink:'Xem tất cả →',
-      authSubtitle:'Tham gia để nhận ưu đãi và quản lý lịch hẹn của bạn', tabLogin:'Đăng nhập', tabRegister:'Đăng ký',
-      lbPhone:'Số điện thoại', lbPwd:'Mật khẩu', lbName:'Họ và tên', lbPhoneR:'Số điện thoại', lbEmail:'Email (không bắt buộc)', lbPwdR:'Mật khẩu', lbRef:'Mã giới thiệu',
-      btnLogin:'Đăng nhập ngay', btnRegister:'Tạo tài khoản', needLogin:'Vui lòng đăng nhập để tiếp tục',
-      successLogin:'Chào mừng bạn trở lại!', successRegister:'Đăng ký thành công!', errPhone:'Vui lòng nhập số điện thoại', errPwd:'Vui lòng nhập mật khẩu',
-      errPwd6:'Mật khẩu tối thiểu 6 ký tự', errPhoneExist:'Số điện thoại này đã được đăng ký', errWrongPwd:'Mật khẩu không chính xác', errNotFound:'Tài khoản không tồn tại',
-      bookingTitle:'Đặt lịch dịch vụ', s1Label:'Chọn dịch vụ', s2Label:'Chọn kỹ thuật viên', s3DateLabel:'Chọn ngày', s3SlotLabel:'Chọn giờ trống',
-      s3NoteLabel:'Ghi chú thêm', selectDateHint:'Vui lòng chọn ngày để xem giờ trống', s4Title:'Xác nhận lịch đặt',
-      sum_service:'Dịch vụ', sum_tech:'Kỹ thuật viên', sum_date:'Ngày hẹn', sum_time:'Giờ hẹn', sum_price:'Giá tiền',
-      btnBack:'Quay lại', btnNext:'Tiếp theo', btnConfirm:'Xác nhận đặt lịch', steps:['Dịch vụ','KTV','Thời gian','Xác nhận'],
-      saving:'Đang xử lý...', successBooking:'Đặt lịch thành công!', errSlotTaken:'Giờ này đã có người đặt, vui lòng chọn giờ khác.', errPast:'Không thể đặt lịch trong quá khứ.',
-      myBkTitle:'Lịch hẹn của tôi', noBookingsDesc:'Bạn chưa có lịch hẹn nào.', cancelBtn:'Hủy lịch', confirmCancel:'Bạn có chắc muốn hủy lịch này?', successCancel:'Đã hủy lịch hẹn',
-      totalVisit:'Lượt ghé thăm', referralCount:'Người đã giới thiệu', referralTitle:'Giới thiệu bạn bè', referralDesc:'Chia sẻ mã giới thiệu của bạn để nhận ưu đãi cho cả hai!',
-      copyCode:'Đã sao chép mã!', totalPoints:'Điểm tích lũy', min:'phút',
-      bnHome:'Trang chủ', bnBook:'Đặt lịch', bnBkgs:'Lịch hẹn', bnProf:'Tài khoản'
-    },
-    en:{
-      navAdmin: 'Admin 🔐',
-      navLogin:'Login', navBook:'Book Now', navBkgs:'Bookings', navProfile:'Profile', navLogout:'Logout',
-      heroTitle:'Your <em>peaceful</em> moment', heroSub:'Relax & Recharge',
-      heroDesc:'Experience world-class hair care and relaxing massage services at Willowy Spa.',
-      heroCta:'Book Now →', svcTitle:'Our Services', svcLink:'View All →',
-      authSubtitle:'Join us to get offers and manage your appointments', tabLogin:'Login', tabRegister:'Register',
-      lbPhone:'Phone Number', lbPwd:'Password', lbName:'Full Name', lbPhoneR:'Phone Number', lbEmail:'Email (optional)', lbPwdR:'Password', lbRef:'Referral Code',
-      btnLogin:'Login Now', btnRegister:'Create Account', needLogin:'Please login to continue',
-      successLogin:'Welcome back!', successRegister:'Registration successful!', errPhone:'Please enter phone number', errPwd:'Please enter password',
-      errPwd6:'Password must be at least 6 characters', errPhoneExist:'This phone number is already registered', errWrongPwd:'Incorrect password', errNotFound:'Account not found',
-      bookingTitle:'Book an Appointment', s1Label:'Select Service', s2Label:'Select Technician', s3DateLabel:'Select Date', s3SlotLabel:'Available Slots',
-      s3NoteLabel:'Additional Note', selectDateHint:'Please select a date to see available slots', s4Title:'Confirm Booking',
-      sum_service:'Service', sum_tech:'Technician', sum_date:'Date', sum_time:'Time', sum_price:'Price',
-      btnBack:'Back', btnNext:'Next', btnConfirm:'Confirm Booking', steps:['Service','Tech','Time','Confirm'],
-      saving:'Processing...', successBooking:'Booking successful!', errSlotTaken:'This slot is already taken, please choose another.', errPast:'Cannot book in the past.',
-      myBkTitle:'My Bookings', noBookingsDesc:'You have no appointments yet.', cancelBtn:'Cancel', confirmCancel:'Are you sure you want to cancel?', successCancel:'Appointment cancelled',
-      totalVisit:'Total Visits', referralCount:'Friends Referred', referralTitle:'Refer a Friend', referralDesc:'Share your code to get rewards for both!',
-      copyCode:'Code copied!', totalPoints:'Total Points', min:'min',
-      bnHome:'Home', bnBook:'Book', bnBkgs:'Bookings', bnProf:'Profile'
-    }
-  };
-  return dict[state.lang][k] || k;
-};
+const t = k => I18N[state.lang][k] || k;
+const fmt = n => new Intl.NumberFormat('vi-VN').format(n) + ' ₫';
+const fmtDate = d => { if(!d)return''; const dt=new Date(d+'T00:00:00'); return state.lang==='vi'?dt.toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'}):dt.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); };
+const fmtDateShort = d => { if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString(state.lang==='vi'?'vi-VN':'en-US',{month:'short'})}; };
 
-const fmt = (v) => new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(v);
-const fmtDate = (d) => { const parts=d.split('-'); return `${parts[2]}/${parts[1]}/${parts[0]}`; };
-const fmtDateShort = (d) => { const parts=d.split('-'); return {day:parts[2],mon:parts[1]}; };
-
-function showLoading(show,msg=''){
+let _loadingTimer=null;
+function showLoading(show,msg){
   const el=document.getElementById('loadingOverlay');
-  const txt=document.getElementById('loadingText');
-  if(show){el.classList.add('show');txt.textContent=msg||'Đang tải...';}
-  else el.classList.remove('show');
+  document.getElementById('loadingText').textContent=msg||t('loading');
+  el.classList.toggle('show',show);
+  if(show){clearTimeout(_loadingTimer);_loadingTimer=setTimeout(()=>{el.classList.remove('show');showToast('Kết nối quá chậm. Thử lại!','error');},15000);}
+  else clearTimeout(_loadingTimer);
 }
 
 function showToast(msg,type='',dur=3000){
@@ -627,42 +704,13 @@ function showToast(msg,type='',dur=3000){
   setTimeout(()=>el.className='',dur);
 }
 
-async function api(action, payload = {}, timeout = 15000) {
-  // Add session token to all protected requests
-  if (state.sessionToken) {
-    payload.token = state.sessionToken;
-  }
-
-  // 1. Try google.script.run if in GAS environment
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    return new Promise((resolve, reject) => {
-      google.script.run
-        .withSuccessHandler(res => resolve(res))
-        .withFailureHandler(err => resolve({ success: false, error: err.message }))
-        .doPost({ action, payload: JSON.stringify(payload) }); // Adjust based on how you call it
-    });
-  }
-
-  // 2. Default Fetch to GAS Exec URL
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeout);
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action, payload }),
-      signal: controller.signal
-    });
-    clearTimeout(timer);
-    const data = await res.json();
-    if (data.error === 'unauthorized' || data.error === 'session_expired') {
-      logout();
-      showPage('auth');
-    }
-    return data;
-  } catch (e) {
-    clearTimeout(timer);
-    return { success: false, error: e.name === 'AbortError' ? 'timeout' : 'network_error' };
-  }
+async function api(action,payload={},timeout=12000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeout);
+  try{
+    const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,payload}),signal:controller.signal});
+    clearTimeout(timer); return res.json();
+  }catch(e){clearTimeout(timer);return{success:false,error:e.name==='AbortError'?'timeout':'network_error'};}
 }
 
 // ── LANG ──────────────────────────────────────────────────────
@@ -682,7 +730,7 @@ function renderAll(){
 
 // ── NAV ───────────────────────────────────────────────────────
 function renderNav(){
-  const an=document.getElementById('navAdmin');if(an)an.style.display='inline-flex';
+  const an=document.getElementById('navAdmin');if(an)an.style.display=state.customer&&state.customer.isAdmin?'inline-flex':'none';
   ['navLogin','navBook','navBkgs','navProfile','navLogout'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.textContent=t(id);
@@ -710,37 +758,30 @@ function showPage(name){
   if(name==='profile') renderProfile();
   if(name==='home') renderHomePage();
   if(name==='admin'){
-    // Ensure we have a session AND it's marked as an admin session in the state
-    if(!state.sessionToken || !state.customer || state.customer.userType !== 'admin'){
-      showAdminLoginModal();
-      return;
-    }
-    state.admin.token = state.sessionToken;
-    document.getElementById('adminDashboard').style.display='flex';
-    loadAdminBookings();
-  }
-}
-
-function showAdminLoginModal() {
-  const user = prompt("Admin Username (willowy_admin):");
-  const pass = prompt("Admin Password (adminadmin):");
-  if (!user || !pass) return;
-  
-  showLoading(true, 'Authenticating Admin...');
-  api('adminLogin', { username: user, password: pass }).then(res => {
-    showLoading(false);
-    if (res.success) {
-      state.sessionToken = res.token;
-      state.customer = { name: res.admin.name, userType: 'admin', isAdmin: true };
-      localStorage.setItem('willowySession', res.token);
-      localStorage.setItem('willowyCustomer', JSON.stringify(state.customer));
-      showToast('Admin access granted', 'success');
-      showPage('admin');
-      renderNav();
+    if(state.admin.token){
+      document.getElementById('adminDashboard').style.display='flex';
+      loadAdminBookings();
     } else {
-      showToast('Invalid admin credentials: ' + res.error, 'error');
+      const user = prompt("Nhập tài khoản Admin:");
+      if(!user) { showPage('home'); return; }
+      const pass = prompt("Nhập mật khẩu Admin:");
+      if(!pass) { showPage('home'); return; }
+      
+      showLoading(true, 'Đang xác thực Admin...');
+      api('adminLogin', {username: user, password: pass}).then(res => {
+        showLoading(false);
+        if(res.success){
+          state.admin.token = res.adminToken;
+          localStorage.setItem('willowyAdminToken', res.adminToken);
+          document.getElementById('adminDashboard').style.display='flex';
+          loadAdminBookings();
+        } else {
+          showToast('Sai tài khoản hoặc mật khẩu Admin!', 'error');
+          showPage('home');
+        }
+      });
     }
-  });
+  }
 }
 function goHome(){showPage('home');}
 
@@ -793,8 +834,8 @@ async function doLogin(){
     showToast(errs[res.error]||res.error,'error');return;
   }
   state.customer=res.customer;
-  state.sessionToken = res.token;
-  localStorage.setItem('willowySession', res.token);
+  if(res.isAdmin) state.customer.isAdmin = true;
+  if(state.customer.isAdmin) state.admin.token = state.customer.customerId;
   localStorage.setItem('willowyCustomer',JSON.stringify(state.customer));
   showToast(t('successLogin'),'success'); renderNav(); showPage('home');
 }
@@ -815,22 +856,11 @@ async function doRegister(){
     const errs={phone_exists:t('errPhoneExist'),network_error:'Lỗi kết nối!',timeout:'Quá thời gian!'};
     showToast(errs[res&&res.error]||'Đã xảy ra lỗi!','error');return;
   }
-  state.customer=res.customer; 
-  state.sessionToken = res.token;
-  localStorage.setItem('willowySession', res.token);
-  localStorage.setItem('willowyCustomer',JSON.stringify(res.customer));
+  state.customer=res.customer; localStorage.setItem('willowyCustomer',JSON.stringify(res.customer));
   showToast(t('successRegister'),'success'); renderNav(); showPage('home');
 }
 
-function logout(){
-  state.customer=null;
-  state.sessionToken=null;
-  localStorage.removeItem('willowyCustomer');
-  localStorage.removeItem('willowySession');
-  renderNav();
-  showPage('home');
-  showToast('Đã đăng xuất');
-}
+function logout(){state.customer=null;localStorage.removeItem('willowyCustomer');renderNav();showPage('home');showToast('Đã đăng xuất');}
 
 // ── BOOKING WIZARD ────────────────────────────────────────────
 function renderBookingLabels(){
@@ -967,7 +997,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       const nextMonthStr = nextMonth.getFullYear() + '-' + String(nextMonth.getMonth()+1).padStart(2,'0') + '-' + String(nextMonth.getDate()).padStart(2,'0');
       dEnd.value=nextMonthStr;
     }
-    state.booking.date=today;
+    state.booking.date=today; // Gán mặc định vào state
     di.addEventListener('change',async()=>{
       if(state.booking.isRecurring) return;
       state.booking.date=di.value;state.booking.startTime=null;
@@ -1018,12 +1048,6 @@ async function loadSlots(){
   }
   container.innerHTML='<div class="spinner"></div>';
   const res=await api('getAvailableSlots',{technicianId:state.booking.technicianId,date:state.booking.date,serviceId:state.booking.serviceId});
-  showLoading(false);
-  if (!res.success) {
-    const msg = res.error === 'no_schedule' ? (state.lang === 'vi' ? 'Kỹ thuật viên không có lịch làm việc ngày này.' : 'Technician has no schedule for this date.') : 'Lỗi tải giờ trống';
-    container.innerHTML = `<p style="color:#c62828;font-size:12px;padding:10px;text-align:center">${msg}</p>`;
-    return;
-  }
   container.innerHTML=`<div class="slots-grid">${res.slots.map(s=>{
     let cls='slot';
     if(s.isPast) cls+=' past';
@@ -1078,6 +1102,7 @@ async function confirmBooking(){
       payload.bookingDate = state.booking.date;
       payload.startTime = state.booking.startTime;
     }
+    // Tăng timeout lên 30s cho tác vụ đặt lịch
     res=await api('createBooking', payload, 30000);
   }
   catch(e){res={success:false,error:'network_error'};}
@@ -1183,7 +1208,7 @@ async function renderProfile(){
       <div class="stat-chips"><div class="stat-chip"><div class="val">${res.referralCount}</div><div class="lbl">${t('referralCount')}</div></div></div>
     </div>`;
     const adm = document.getElementById('btnProfAdmin');
-    if(adm) adm.style.display = (c.userType === 'admin' ? 'inline-flex' : 'none');
+    if(adm) adm.style.display = (c.isAdmin ? 'inline-flex' : 'none');
     const lout = document.getElementById('btnProfLogout');
     if(lout) lout.textContent = '🚪 ' + t('navLogout');
   }
@@ -1191,7 +1216,20 @@ async function renderProfile(){
 
 function copyRef(code){navigator.clipboard.writeText(code).then(()=>showToast(t('copyCode'),'success'));}
 
+function generateQRSVG(text){
+  // Deprecated - Replaced by real QR API
+  return '';
+}
+
 // ── ADMIN ─────────────────────────────────────────────────────
+async function doAdminLogin(){
+  // Deprecated
+}
+
+function adminLogout(){
+  // Deprecated
+}
+
 function switchAdminPanel(name){
   document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.admin-nav-item').forEach(n=>n.classList.remove('active'));
@@ -1325,6 +1363,7 @@ async function loadAdminTechnicians(){
   const res=await api('adminGetTechnicians',{adminToken:state.admin.token});
   if(!res.success){body.innerHTML=`<tr><td colspan="6" style="color:#c62828;padding:12px">${res.error}</td></tr>`;return;}
   state.admin.technicians=res.technicians;
+  // Populate schedule tech filter
   const tf=document.getElementById('filterSchTech');
   if(tf){tf.innerHTML='<option value="">Tất cả KTV</option>'+res.technicians.map(t=>`<option value="${t.technicianId}">${t.nameVi}</option>`).join('');}
   body.innerHTML=res.technicians.map(t=>`<tr>
@@ -1340,15 +1379,6 @@ async function loadAdminTechnicians(){
 
 function openTechModal(techId){
   const modal=document.getElementById('modalTech');
-  const specList = document.getElementById('techSpecialtiesList');
-  if (specList) {
-    specList.innerHTML = state.admin.services.map(s => `
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-        <input type="checkbox" name="techSpec" value="${s.serviceId}" ${techId && (state.admin.technicians.find(x=>x.technicianId===techId)||{}).specialties?.includes(s.serviceId) ? 'checked' : ''}>
-        ${s.nameVi}
-      </label>
-    `).join('');
-  }
   if(techId){
     const t2=state.admin.technicians.find(x=>x.technicianId===techId)||{};
     document.getElementById('modalTechTitle').textContent='Sửa kỹ thuật viên';
@@ -1356,23 +1386,23 @@ function openTechModal(techId){
     document.getElementById('techNameVi').value=t2.nameVi||'';
     document.getElementById('techNameEn').value=t2.nameEn||'';
     document.getElementById('techPhone').value=t2.phone||'';
+    document.getElementById('techSpecialties').value=t2.specialties||'';
     document.getElementById('techActive').checked=isActiveFE(t2.isActive);
   } else {
     document.getElementById('modalTechTitle').textContent='Thêm kỹ thuật viên';
-    ['techId','techNameVi','techNameEn','techPhone'].forEach(id=>document.getElementById(id).value='');
+    ['techId','techNameVi','techNameEn','techPhone','techSpecialties'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('techActive').checked=true;
   }
   modal.classList.add('show');
 }
 
 async function saveTechnician(){
-  const specs = Array.from(document.querySelectorAll('input[name="techSpec"]:checked')).map(cb => cb.value).join(',');
   const technician={
     technicianId:document.getElementById('techId').value||'',
     nameVi:document.getElementById('techNameVi').value.trim(),
     nameEn:document.getElementById('techNameEn').value.trim(),
     phone:document.getElementById('techPhone').value.trim(),
-    specialties:specs,
+    specialties:document.getElementById('techSpecialties').value.trim(),
     isActive:document.getElementById('techActive').checked
   };
   if(!technician.nameVi){showToast('Nhập tên KTV (VI)','error');return;}
@@ -1396,6 +1426,7 @@ async function deleteTech(technicianId,name){
 async function loadAdminSchedules(){
   const body=document.getElementById('adminSchedulesBody');if(!body)return;
   body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:20px"><div class="spinner" style="margin:0 auto"></div></td></tr>`;
+  // Load technicians for filter if not loaded
   if(!state.admin.technicians.length){
     const tr=await api('adminGetTechnicians',{adminToken:state.admin.token});
     if(tr.success){
@@ -1439,6 +1470,7 @@ function filterSchedules(){
 
 function openScheduleModal(scheduleId){
   const modal=document.getElementById('modalSchedule');
+  // Populate tech dropdown
   const sel=document.getElementById('schTech');
   sel.innerHTML=state.admin.technicians.map(t=>`<option value="${t.technicianId}">${t.nameVi}</option>`).join('');
   if(scheduleId){
@@ -1486,31 +1518,53 @@ async function deleteSchedule(scheduleId){
   else showToast(res.error,'error');
 }
 
-function closeModal(id){document.getElementById(id).classList.remove('show');}
-function togglePwd(id,btn){
-  const input=document.getElementById(id);
-  const isPwd=input.type==='password';
-  input.type=isPwd?'text':'password';
-  const eye=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-  const eyeOff=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+// ── MODAL HELPERS ─────────────────────────────────────────────
+function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('show');});
+});
+
+// ── INIT ──────────────────────────────────────────────────────
+function init(){
+  // Support both: Vercel (window.location.search) and GAS iframe (__URL_PARAMS__)
+  const urlParams = new URLSearchParams(window.location.search);
+  const gasParams = window.__URL_PARAMS__ || {};
+  const getParam = k => urlParams.get(k) || gasParams[k] || '';
+
+  const ref = getParam('ref');
+  if(ref){
+    localStorage.setItem('willowy_ref', ref);
+    api('trackQRScan',{referralCode:ref});
+    // Redirect to home without query params for clean URL
+    if (window.history.replaceState) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }
+  
+  // Prefill referral code if exists
+  const savedRef = localStorage.getItem('willowy_ref');
+  if(savedRef){
+    const el=document.getElementById('regRef');if(el)el.value=savedRef;
+  }
+
+  // Admin shortcut ?admin=1
+  if(getParam('admin')==='1'){showPage('admin');return;}
+
+  const saved=localStorage.getItem('willowyCustomer');
+  if(saved){try{state.customer=JSON.parse(saved);}catch(e){}}
+
+  renderNav();renderAuthPage();renderBookingLabels();renderBottomNav();
+  showPage('home');
+}
+
+function togglePwd(id, btn) {
+  const el = document.getElementById(id);
+  const isPwd = el.type === 'password';
+  el.type = isPwd ? 'text' : 'password';
+  const eye = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  const eyeOff = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10a10 10 0 0 0 20 0"></path><line x1="2" y1="10" x2="4" y2="14"></line><line x1="7" y1="12" x2="8" y2="17"></line><line x1="12" y1="13" x2="12" y2="18"></line><line x1="17" y1="12" x2="16" y2="17"></line><line x1="22" y1="10" x2="20" y2="14"></line></svg>`;
   btn.innerHTML = isPwd ? eye : eyeOff;
 }
-
-async function runSetup(){
-  if(!confirm('This will create missing sheets and initialize the default admin. Continue?')) return;
-  showLoading(true, 'Running setup...');
-  const res = await api('setup');
-  showLoading(false);
-  if(res.success) showToast(res.message, 'success');
-  else showToast(res.error, 'error');
-}
-
-function init(){
-  const saved = localStorage.getItem('willowyCustomer');
-  if(saved) state.customer=JSON.parse(saved);
-  setLang('vi');
-}
-
 window.addEventListener('DOMContentLoaded',init);
 </script>
 </body>

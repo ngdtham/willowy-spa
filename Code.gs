@@ -15,18 +15,6 @@ const CONFIG = {
   ADMIN: {
     USERNAME: 'willowy_admin',
     PASSWORD: 'adminadmin'
-  },
-  SESSION_EXPIRY_MS: 24 * 60 * 60 * 1000, // 24 hours
-  SHEETS: {
-    CUSTOMERS:   'Customers',
-    BOOKINGS:    'Bookings',
-    SERVICES:    'Services',
-    TECHNICIANS: 'Technicians',
-    REFERRALS:   'Referrals',
-    SCHEDULES:   'Schedules',
-    SESSIONS:    'Sessions',
-    ADMINS:      'Admins',
-    LOGS:        'Logs'
   }
 };
 
@@ -57,27 +45,12 @@ function doPost(e) {
       'adminGetServices': handleAdminGetServices, 'adminSaveService': handleAdminSaveService, 'adminDeleteService': handleAdminDeleteService,
       'adminGetTechnicians': handleAdminGetTechnicians, 'adminSaveTechnician': handleAdminSaveTechnician, 'adminDeleteTechnician': handleAdminDeleteTechnician,
       'adminGetSchedules': handleAdminGetSchedules, 'adminSaveSchedule': handleAdminSaveSchedule, 'adminDeleteSchedule': handleAdminDeleteSchedule,
-      'setup': handleSetup
     };
     if (handlers[action]) {
-      const result = handlers[action](payload);
-      // Resolve user for logging
-      let user = 'guest';
-      if (payload.token) {
-        const userId = validateSession(payload.token);
-        if (userId) user = userId;
-      } else {
-        user = payload.customerId || payload.adminId || 'unknown';
-      }
-      
-      if (result && result.success === false) {
-        logAction('ERROR', action, user, result.error);
-      }
-      return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify(handlers[action](payload))).setMimeType(ContentService.MimeType.JSON);
     }
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'unknown_action' })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    logAction('CRITICAL', 'doPost', 'system', err.message);
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message })).setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -161,99 +134,13 @@ function hashPassword(pw) {
   return Math.abs(h).toString(36).toUpperCase();
 }
 
-function sanitizeCustomer(c) { const {passwordHash, isAdmin, ...safe} = c; return safe; }
+function sanitizeCustomer(c) { const {passwordHash, ...safe} = c; return safe; }
 
 function verifyAdmin(payload) {
-  if (!payload || !payload.token) return false;
-  const userId = validateSession(payload.token, 'admin');
-  return userId !== false;
-}
-
-function verifyCustomer(payload) {
-  if (!payload || !payload.token) return false;
-  const userId = validateSession(payload.token, 'customer');
-  return userId !== false;
-}
-
-function createSession(userId, userType) {
-  const sessionId = generateId('SES');
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + CONFIG.SESSION_EXPIRY_MS);
-  const sheet = getSheet(CONFIG.SHEETS.SESSIONS);
-  appendRow(sheet, getHeaders(sheet), {
-    sessionId,
-    userId,
-    userType,
-    issuedAt: now.toISOString(),
-    expiresAt: expiresAt.toISOString()
-  });
-  return sessionId;
-}
-
-function validateSession(token, expectedType) {
-  try {
-    const sheet = getSheet(CONFIG.SHEETS.SESSIONS);
-    const sessions = sheetToObjects(sheet);
-    const session = sessions.find(s => s.sessionId === token);
-    if (!session) return false;
-    
-    const now = new Date();
-    const expiry = new Date(session.expiresAt);
-    if (now > expiry) return false;
-    
-    if (expectedType && session.userType !== expectedType) return false;
-    
-    return session.userId;
-  } catch (e) {
-    return false;
-  }
-}
-
-function logAction(level, action, user, message) {
-  try {
-    const sheet = getSheet(CONFIG.SHEETS.LOGS);
-    appendRow(sheet, getHeaders(sheet), {
-      timestamp: new Date().toISOString(),
-      level,
-      action,
-      user,
-      message,
-      data: ''
-    });
-  } catch (e) {
-    console.error('Logging failed', e);
-  }
-}
-
-function handleSetup() {
-  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
-  const sheets = [
-    { name: CONFIG.SHEETS.SESSIONS, headers: ['sessionId', 'userId', 'userType', 'issuedAt', 'expiresAt'] },
-    { name: CONFIG.SHEETS.ADMINS, headers: ['adminId', 'username', 'passwordHash', 'name', 'isActive'] },
-    { name: CONFIG.SHEETS.LOGS, headers: ['timestamp', 'level', 'action', 'user', 'message', 'data'] }
-  ];
-  
-  sheets.forEach(s => {
-    let sheet = ss.getSheetByName(s.name);
-    if (!sheet) {
-      sheet = ss.insertSheet(s.name);
-      sheet.appendRow(s.headers);
-    }
-  });
-  
-  // Create default admin if Admins sheet is empty
-  const adminSheet = ss.getSheetByName(CONFIG.SHEETS.ADMINS);
-  if (adminSheet.getLastRow() < 2) {
-    appendRow(adminSheet, ['adminId', 'username', 'passwordHash', 'name', 'isActive'], {
-      adminId: 'ADMIN_001',
-      username: CONFIG.ADMIN.USERNAME,
-      passwordHash: hashPassword(CONFIG.ADMIN.PASSWORD),
-      name: 'Super Admin',
-      isActive: true
-    });
-  }
-  
-  return { success: true, message: 'Setup complete. Default admin created if needed.' };
+  if (!payload || !payload.adminToken) return false;
+  const parts = payload.adminToken.split(':');
+  if (parts.length !== 2) return false;
+  return parts[0] === CONFIG.ADMIN.USERNAME && parts[1] === hashPassword(CONFIG.ADMIN.PASSWORD);
 }
 
 // ── AUTH ─────────────────────────────────────────────────────
@@ -264,28 +151,7 @@ function handleLogin(payload) {
   const customer = customers.find(c => String(c.phone).trim() === String(phone).trim() && isActive(c.isActive));
   if (!customer) return { success: false, error: 'not_found' };
   if (customer.passwordHash !== hashPassword(password)) return { success: false, error: 'wrong_password' };
-  
-  const token = createSession(customer.customerId, 'customer');
-  logAction('INFO', 'login', customer.customerId, 'Customer logged in');
-  
-  return { success: true, customer: sanitizeCustomer(customer), token };
-}
-
-function handleAdminLogin(payload) {
-  const { username, password } = payload;
-  if (!username || !password) return { success: false, error: 'missing_fields' };
-  
-  const adminSheet = getSheet(CONFIG.SHEETS.ADMINS);
-  const admins = sheetToObjects(adminSheet);
-  const admin = admins.find(a => a.username === username && isActive(a.isActive));
-  
-  if (!admin) return { success: false, error: 'not_found' };
-  if (admin.passwordHash !== hashPassword(password)) return { success: false, error: 'wrong_password' };
-  
-  const token = createSession(admin.adminId, 'admin');
-  logAction('INFO', 'adminLogin', admin.adminId, 'Admin logged in');
-  
-  return { success: true, admin: { adminId: admin.adminId, name: admin.name }, token };
+  return { success: true, customer: sanitizeCustomer(customer), isAdmin: isActive(customer.isAdmin) };
 }
 
 function handleRegister(payload) {
@@ -365,9 +231,8 @@ function handleGetAvailableSlots(payload) {
     techSchedule = schedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === date && isActive(s.isActive));
   } catch(e) {}
   // Use default working hours if no specific schedule exists
-  if (!techSchedule) return { success: false, error: 'no_schedule' };
-  var scheduleStart = normalizeTime(techSchedule.startTime);
-  var scheduleEnd = normalizeTime(techSchedule.endTime);
+  var scheduleStart = techSchedule ? normalizeTime(techSchedule.startTime) : '08:00';
+  var scheduleEnd = techSchedule ? normalizeTime(techSchedule.endTime) : '22:00';
   return { success: true, slots: generateTimeSlots(scheduleStart, scheduleEnd, duration, existingBookings, date) };
 }
 
@@ -435,6 +300,7 @@ function handleCreateBooking(payload) {
     
     let successfulBookings = [];
     let skippedDates = [];
+    let newSchedulesToCreate = [];
     const now = new Date();
     const schSheet = getSheet(CONFIG.SHEETS.SCHEDULES);
     const existingSchedules = sheetToObjects(schSheet);
@@ -469,9 +335,11 @@ function handleCreateBooking(payload) {
       existingBookings.push(booking);
       
       // Kiểm tra schedule trong memory
-      const existingSch = existingSchedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === d && isActive(s.isActive));
+      const existingSch = existingSchedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === d);
       if (!existingSch) {
-        skippedDates.push(d); continue;
+        const newSch = { scheduleId: generateId('SCH'), technicianId: technicianId, date: d, startTime: '08:00', endTime: '22:00', isActive: true };
+        newSchedulesToCreate.push(newSch);
+        existingSchedules.push(newSch);
       }
     }
     
@@ -486,8 +354,12 @@ function handleCreateBooking(payload) {
     }));
     bSheet.getRange(bSheet.getLastRow() + 1, 1, bValues.length, bHeaders.length).setValues(bValues);
 
-    // Batch write Schedules - Removed as per strict policy
-    
+    // Batch write Schedules
+    if (newSchedulesToCreate.length > 0) {
+      const schHeaders = getHeaders(schSheet);
+      const schValues = newSchedulesToCreate.map(s => schHeaders.map(h => s[h] !== undefined ? s[h] : ''));
+      schSheet.getRange(schSheet.getLastRow() + 1, 1, schValues.length, schHeaders.length).setValues(schValues);
+    }
     
     if (successfulBookings.length === 0) return { success: false, error: 'slot_taken' };
 
@@ -565,8 +437,10 @@ function handleTrackQRScan(payload) {
 
 // ── ADMIN ─────────────────────────────────────────────────────
 function handleAdminLogin(payload) {
-  // Deprecated - Admin now uses regular login
-  return { success: false, error: 'deprecated' };
+  const { username, password } = payload;
+  if (username === CONFIG.ADMIN.USERNAME && password === CONFIG.ADMIN.PASSWORD)
+    return { success: true, adminToken: CONFIG.ADMIN.USERNAME + ':' + hashPassword(password) };
+  return { success: false, error: 'wrong_credentials' };
 }
 
 function handleAdminGetAllBookings(payload) {
@@ -602,10 +476,10 @@ function handleAdminSaveService(payload) {
 function handleAdminDeleteService(payload) {
   if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
   try {
-    const sheet = getSheet(CONFIG.SHEETS.SERVICES); const all = sheetToObjects(sheet); const headers = getHeaders(sheet);
+    const sheet = getSheet(CONFIG.SHEETS.SERVICES); const all = sheetToObjects(sheet);
     const idx = all.findIndex(s => s.serviceId===payload.serviceId);
     if (idx===-1) return { success: false, error: 'not_found' };
-    all[idx].isActive = false; updateRow(sheet, idx, headers, all[idx]); return { success: true };
+    deleteRow(sheet, idx); return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
 }
 
@@ -629,10 +503,10 @@ function handleAdminSaveTechnician(payload) {
 function handleAdminDeleteTechnician(payload) {
   if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
   try {
-    const sheet = getSheet(CONFIG.SHEETS.TECHNICIANS); const all = sheetToObjects(sheet); const headers = getHeaders(sheet);
+    const sheet = getSheet(CONFIG.SHEETS.TECHNICIANS); const all = sheetToObjects(sheet);
     const idx = all.findIndex(t => t.technicianId===payload.technicianId);
     if (idx===-1) return { success: false, error: 'not_found' };
-    all[idx].isActive = false; updateRow(sheet, idx, headers, all[idx]); return { success: true };
+    deleteRow(sheet, idx); return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
 }
 
@@ -659,10 +533,10 @@ function handleAdminSaveSchedule(payload) {
 function handleAdminDeleteSchedule(payload) {
   if (!verifyAdmin(payload)) return { success: false, error: 'unauthorized' };
   try {
-    const sheet = getSheet(CONFIG.SHEETS.SCHEDULES); const all = sheetToObjects(sheet); const headers = getHeaders(sheet);
+    const sheet = getSheet(CONFIG.SHEETS.SCHEDULES); const all = sheetToObjects(sheet);
     const idx = all.findIndex(s => s.scheduleId===payload.scheduleId);
     if (idx===-1) return { success: false, error: 'not_found' };
-    all[idx].isActive = false; updateRow(sheet, idx, headers, all[idx]); return { success: true };
+    deleteRow(sheet, idx); return { success: true };
   } catch(e) { return { success: false, error: e.message }; }
 }
 
