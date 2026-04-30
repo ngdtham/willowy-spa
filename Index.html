@@ -467,7 +467,10 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
         <div class="admin-panel active" id="panel-bookings">
           <div class="admin-header">
             <div><div class="admin-title">Quản lý lịch đặt</div><div class="admin-subtitle">Tất cả lịch hẹn của khách hàng</div></div>
-            <button class="btn btn-primary btn-sm" onclick="loadAdminBookings()">↻ Làm mới</button>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-outline btn-sm" onclick="runSetup()" title="Initialize Sheets/Admin">⚙️ Setup</button>
+              <button class="btn btn-primary btn-sm" onclick="loadAdminBookings()">↻ Làm mới</button>
+            </div>
           </div>
           <div id="adminStats" class="admin-stats"></div>
           <div class="admin-filters">
@@ -578,7 +581,13 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
     <div class="form-group"><label class="form-label">Tên (Tiếng Việt)</label><input class="form-control" id="techNameVi" placeholder="Nguyễn Thị Lan"/></div>
     <div class="form-group"><label class="form-label">Tên (English)</label><input class="form-control" id="techNameEn" placeholder="Nguyen Thi Lan"/></div>
     <div class="form-group"><label class="form-label">Số điện thoại</label><input class="form-control" id="techPhone" type="tel" placeholder="0901234567"/></div>
-    <div class="form-group"><label class="form-label">Dịch vụ phụ trách (ID cách nhau bằng dấu phẩy)</label><input class="form-control" id="techSpecialties" placeholder="SVC_001,SVC_002"/></div>
+    <div class="form-group">
+      <label class="form-label">Dịch vụ phụ trách</label>
+      <div id="techSpecialtiesList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:150px;overflow-y:auto;padding:10px;border:1.5px solid var(--border);border-radius:var(--r);background:var(--bg)">
+        <!-- Loaded dynamically -->
+      </div>
+      <input type="hidden" id="techSpecialties"/>
+    </div>
     <label class="switch"><input type="checkbox" id="techActive" checked/><div class="switch-track"></div><span>Kích hoạt</span></label>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modalTech')">Hủy</button>
@@ -680,7 +689,8 @@ let state = {
   lang:'vi', customer:null, services:[], technicians:[],
   booking:{serviceId:null,technicianId:null,date:null,startTime:null,endTime:null,note:'',isRecurring:false,recStartDate:'',recEndDate:'',recDays:[],recTime:'09:00'},
   currentStep:1, currentPage:'home',
-  admin:{token:null, bookings:[], services:[], technicians:[], schedules:[]}
+  admin:{token:null, bookings:[], services:[], technicians:[], schedules:[]},
+  sessionToken: localStorage.getItem('willowySession') || null
 };
 
 // ── UTILS ─────────────────────────────────────────────────────
@@ -704,13 +714,45 @@ function showToast(msg,type='',dur=3000){
   setTimeout(()=>el.className='',dur);
 }
 
-async function api(action,payload={},timeout=12000){
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),timeout);
-  try{
-    const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,payload}),signal:controller.signal});
-    clearTimeout(timer); return res.json();
-  }catch(e){clearTimeout(timer);return{success:false,error:e.name==='AbortError'?'timeout':'network_error'};}
+async function api(action, payload = {}, timeout = 15000) {
+  // Add session token to all protected requests
+  if (state.sessionToken) {
+    payload.token = state.sessionToken;
+  }
+
+  // 1. Try google.script.run if in GAS environment
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(res => resolve(res))
+        .withFailureHandler(err => resolve({ success: false, error: err.message }))
+        .doPost({ action, payload: JSON.stringify(payload) }); // Adjust based on how you call it
+        // Actually, GAS usually calls functions directly, but we map to doPost logic
+        // For simplicity in this project, we'll keep the fetch-to-exec as the primary model
+        // UNLESS it's served via doGet.
+    });
+  }
+
+  // 2. Default Fetch to GAS Exec URL
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action, payload }),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    const data = await res.json();
+    if (data.error === 'unauthorized' || data.error === 'session_expired') {
+      logout();
+      showPage('auth');
+    }
+    return data;
+  } catch (e) {
+    clearTimeout(timer);
+    return { success: false, error: e.name === 'AbortError' ? 'timeout' : 'network_error' };
+  }
 }
 
 // ── LANG ──────────────────────────────────────────────────────
@@ -758,11 +800,35 @@ function showPage(name){
   if(name==='profile') renderProfile();
   if(name==='home') renderHomePage();
   if(name==='admin'){
-    if(!state.customer||!state.customer.isAdmin){showToast('Bạn không có quyền truy cập Admin','error');showPage('home');return;}
-    state.admin.token = state.customer.customerId;
+    if(!state.sessionToken || !state.customer || !state.customer.isAdmin){
+      showAdminLoginModal();
+      return;
+    }
+    state.admin.token = state.sessionToken;
     document.getElementById('adminDashboard').style.display='flex';
     loadAdminBookings();
   }
+}
+
+function showAdminLoginModal() {
+  const user = prompt("Admin Username:");
+  const pass = prompt("Admin Password:");
+  if (!user || !pass) return;
+  
+  showLoading(true, 'Authenticating...');
+  api('adminLogin', { username: user, password: pass }).then(res => {
+    showLoading(false);
+    if (res.success) {
+      state.sessionToken = res.token;
+      state.customer = { name: res.admin.name, isAdmin: true };
+      localStorage.setItem('willowySession', res.token);
+      localStorage.setItem('willowyCustomer', JSON.stringify(state.customer));
+      showToast('Admin access granted', 'success');
+      showPage('admin');
+    } else {
+      showToast('Invalid admin credentials', 'error');
+    }
+  });
 }
 function goHome(){showPage('home');}
 
@@ -815,8 +881,8 @@ async function doLogin(){
     showToast(errs[res.error]||res.error,'error');return;
   }
   state.customer=res.customer;
-  if(res.isAdmin) state.customer.isAdmin = true;
-  if(state.customer.isAdmin) state.admin.token = state.customer.customerId;
+  state.sessionToken = res.token;
+  localStorage.setItem('willowySession', res.token);
   localStorage.setItem('willowyCustomer',JSON.stringify(state.customer));
   showToast(t('successLogin'),'success'); renderNav(); showPage('home');
 }
@@ -837,11 +903,22 @@ async function doRegister(){
     const errs={phone_exists:t('errPhoneExist'),network_error:'Lỗi kết nối!',timeout:'Quá thời gian!'};
     showToast(errs[res&&res.error]||'Đã xảy ra lỗi!','error');return;
   }
-  state.customer=res.customer; localStorage.setItem('willowyCustomer',JSON.stringify(res.customer));
+  state.customer=res.customer; 
+  state.sessionToken = res.token;
+  localStorage.setItem('willowySession', res.token);
+  localStorage.setItem('willowyCustomer',JSON.stringify(res.customer));
   showToast(t('successRegister'),'success'); renderNav(); showPage('home');
 }
 
-function logout(){state.customer=null;localStorage.removeItem('willowyCustomer');renderNav();showPage('home');showToast('Đã đăng xuất');}
+function logout(){
+  state.customer=null;
+  state.sessionToken=null;
+  localStorage.removeItem('willowyCustomer');
+  localStorage.removeItem('willowySession');
+  renderNav();
+  showPage('home');
+  showToast('Đã đăng xuất');
+}
 
 // ── BOOKING WIZARD ────────────────────────────────────────────
 function renderBookingLabels(){
@@ -1358,8 +1435,17 @@ async function loadAdminTechnicians(){
   </tr>`).join('');
 }
 
-function openTechModal(techId){
-  const modal=document.getElementById('modalTech');
+  // Populate specialties checklist
+  const specList = document.getElementById('techSpecialtiesList');
+  if (specList) {
+    specList.innerHTML = state.admin.services.map(s => `
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+        <input type="checkbox" name="techSpec" value="${s.serviceId}" ${techId && (state.admin.technicians.find(x=>x.technicianId===techId)||{}).specialties?.includes(s.serviceId) ? 'checked' : ''}>
+        ${s.nameVi}
+      </label>
+    `).join('');
+  }
+
   if(techId){
     const t2=state.admin.technicians.find(x=>x.technicianId===techId)||{};
     document.getElementById('modalTechTitle').textContent='Sửa kỹ thuật viên';
@@ -1367,23 +1453,23 @@ function openTechModal(techId){
     document.getElementById('techNameVi').value=t2.nameVi||'';
     document.getElementById('techNameEn').value=t2.nameEn||'';
     document.getElementById('techPhone').value=t2.phone||'';
-    document.getElementById('techSpecialties').value=t2.specialties||'';
     document.getElementById('techActive').checked=isActiveFE(t2.isActive);
   } else {
     document.getElementById('modalTechTitle').textContent='Thêm kỹ thuật viên';
-    ['techId','techNameVi','techNameEn','techPhone','techSpecialties'].forEach(id=>document.getElementById(id).value='');
+    ['techId','techNameVi','techNameEn','techPhone'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('techActive').checked=true;
   }
   modal.classList.add('show');
 }
 
 async function saveTechnician(){
+  const specs = Array.from(document.querySelectorAll('input[name="techSpec"]:checked')).map(cb => cb.value).join(',');
   const technician={
     technicianId:document.getElementById('techId').value||'',
     nameVi:document.getElementById('techNameVi').value.trim(),
     nameEn:document.getElementById('techNameEn').value.trim(),
     phone:document.getElementById('techPhone').value.trim(),
-    specialties:document.getElementById('techSpecialties').value.trim(),
+    specialties:specs,
     isActive:document.getElementById('techActive').checked
   };
   if(!technician.nameVi){showToast('Nhập tên KTV (VI)','error');return;}
@@ -1547,6 +1633,14 @@ function togglePwd(id, btn) {
   btn.innerHTML = isPwd ? eye : eyeOff;
 }
 window.addEventListener('DOMContentLoaded',init);
+async function runSetup(){
+  if(!confirm('This will create missing sheets and initialize the default admin. Continue?')) return;
+  showLoading(true, 'Running setup...');
+  const res = await api('setup');
+  showLoading(false);
+  if(res.success) showToast(res.message, 'success');
+  else showToast(res.error, 'error');
+}
 </script>
 </body>
 </html>
