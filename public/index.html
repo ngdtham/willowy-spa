@@ -730,7 +730,8 @@ function renderAll(){
 
 // ── NAV ───────────────────────────────────────────────────────
 function renderNav(){
-  const an=document.getElementById('navAdmin');if(an)an.style.display=state.customer&&state.customer.isAdmin?'inline-flex':'none';
+  const an=document.getElementById('navAdmin');
+  if(an) an.style.display='inline-flex'; // Luôn hiện nút Admin
   ['navLogin','navBook','navBkgs','navProfile','navLogout'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.textContent=t(id);
