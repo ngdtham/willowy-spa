@@ -684,7 +684,7 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 <div class="modal-bg" id="modalEditProfile">
   <div class="modal" style="max-width:420px">
     <h3>✏️ Chỉnh sửa thông tin</h3>
-    <div class="profile-edit-form">
+<div class="profile-edit-form">
       <div class="form-group">
         <label class="form-label">Số điện thoại (tài khoản đăng nhập)</label>
         <input class="form-control profile-field-readonly" id="editPhone" type="tel" readonly/>
@@ -705,36 +705,62 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
   </div>
 </div>
 
+<!-- MODAL ADMIN LOGIN -->
+<div class="modal-bg" id="modalAdminLogin">
+  <div class="modal" style="max-width:320px">
+    <h3 style="text-align:center">🔐 Admin Access</h3>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input class="form-control" id="adminUser" type="text" autocomplete="off" spellcheck="false"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-control" id="adminPass" type="password" autocomplete="new-password"/>
+    </div>
+    <div class="modal-footer" style="padding-top:0; border-top:none">
+      <button class="btn btn-outline" onclick="closeModal('modalAdminLogin')">Hủy</button>
+      <button class="btn btn-primary" onclick="submitAdminLogin()">Đăng nhập</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
 const API_URL = 'https://script.google.com/macros/s/AKfycbzyfSdGC1HTLaZWeU5HeuyEuCWfFdgcCA9sOWeliJ42W4oH5ishONdenSnc0ZSSyyg5/exec'; // << THAY THẾ URL CỦA BẠN
 
-// ── SERVICE EXTENDED DATA (từ menu dịch vụ Willowy Spa) ───────
+// ── SERVICE EXTENDED DATA ─────────────────────────────────────
 const SERVICE_EXTENDED_DATA = {
   categories: [
     {
       id: 'goi_dau', icon: '🪷', label: 'Gội đầu & chăm sóc tóc',
       services: [
         {
-          id: 'goi_dau_01', icon: '🪷', nameVi: 'Gội đầu thư giãn (H1)', nameEn: 'Relaxing Wash',
-          duration: 45, price: 150000,
-          description: 'Làm sạch sâu kết hợp massage da đầu giảm stress.',
-          steps: ['Chải tóc','Gội thảo dược','Massage da đầu','Xả dưỡng','Sấy khô'],
-          combos: [{name:'5 buổi', price:'700.000 ₫'},{name:'10 buổi', price:'1.300.000 ₫'}]
+          id: 'H1', icon: '🪷', nameVi: 'Nhẹ (H1)', nameEn: 'Light Hair Wash',
+          duration: 45, price: 70000,
+          description: 'Làm sạch da đầu và thư giãn nhẹ nhàng, phù hợp khi bạn cần một buổi gội đầu gọn gàng.',
+          steps: ['Gội - Xả','Massage đầu','Sấy'],
+          combos: [{name:'Thẻ 10 buổi', price:'+2 buổi'},{name:'Tặng thêm', price:'3 lần TDC da đầu'}]
         },
         {
-          id: 'goi_dau_03', icon: '✨', nameVi: 'Gội + Massage vai gáy (H3)', nameEn: 'Wash & Shoulder Massage',
-          duration: 60, price: 200000,
-          description: 'Combo yêu thích: Gội đầu thư giãn và massage vai gáy chuyên sâu.',
-          steps: ['Gội sạch','Massage vai gáy 15p','Massage da đầu','Xả dưỡng','Sấy tạo kiểu'],
-          combos: [{name:'5 buổi', price:'940.000 ₫'},{name:'10 buổi', price:'1.800.000 ₫'}]
+          id: 'H2', icon: '✨', nameVi: 'Thả Lỏng (H2)', nameEn: 'Relaxing Hair Wash',
+          duration: 90, price: 179000,
+          description: 'Khoảng thời gian đủ để cơ thể thả lỏng rõ rệt hơn, kết hợp giữa chăm sóc tóc & thư giãn.',
+          steps: ['Massage mặt','Massage đầu','Ủ tóc','TDC da đầu','Gội - Xả'],
+          combos: [{name:'Thẻ 10 buổi', price:'+2 buổi'}]
         },
         {
-          id: 'goi_dau_04', icon: '👑', nameVi: 'Gội đầu dưỡng sinh Premium (H4)', nameEn: 'Premium Wellness Wash',
-          duration: 90, price: 350000,
-          description: 'Kết hợp gội đầu thảo dược, đắp mặt nạ và massage tay chân vai gáy toàn diện.',
-          steps: ['Ngâm chân','Rửa mặt & đắp mặt nạ','Gội thảo dược 2 lần','Massage chuyên sâu vai gáy','Massage tay & chân','Xông khói bồ kết','Sấy tạo kiểu'],
-          combos: [{name:'3 buổi', price:'950.000 ₫'}]
+          id: 'H3', icon: '💆', nameVi: 'Phục Hồi (H3)', nameEn: 'Recovery Hair Wash',
+          duration: 120, price: 269000,
+          description: 'Tập trung vào vùng đầu & vùng cổ vai gáy, chăm sóc sâu hơn giúp giảm căng thẳng.',
+          steps: ['Massage cổ vai gáy + đá nóng','Ủ tóc','Ngâm chân thảo mộc'],
+          combos: [{name:'Thẻ 10 buổi', price:'+2 buổi'}]
+        },
+        {
+          id: 'H4', icon: '👑', nameVi: 'Trọn Vẹn (H4)', nameEn: 'Complete Hair Wash',
+          duration: 150, price: 299000,
+          description: 'Liệu trình đầy đủ nhất, kết hợp chăm sóc da đầu và thư giãn nhiều vùng hơn.',
+          steps: ['Massage đầu - cổ vai gáy - tay','Ủ tóc','Ngâm chân thảo mộc'],
+          combos: [{name:'Thẻ 10 buổi', price:'+3 buổi'}]
         }
       ]
     },
@@ -742,32 +768,32 @@ const SERVICE_EXTENDED_DATA = {
       id: 'dau_mun', icon: '🌿', label: 'Chăm sóc dầu mụn',
       services: [
         {
-          id: 'dau_mun_01', icon: '🌿', nameVi: 'Điều trị dầu mụn cơ bản (SO1)', nameEn: 'Basic Acne & Oil Treatment',
-          duration: 60, price: 250000,
-          description: 'Liệu trình chăm sóc da chuyên sâu, làm sạch và cân bằng bã nhờn, thu nhỏ lỗ chân lông, ngăn ngừa mụn tái phát.',
-          steps: ['Tẩy trang & làm sạch da bằng sữa rửa mặt chuyên biệt','Xông hơi làm mềm da, mở lỗ chân lông','Lấy nhân mụn, hút nhờn bằng thiết bị chuyên dụng','Đắp mặt nạ kiểm soát dầu & kháng khuẩn','Thoa kem dưỡng phục hồi & chống nắng'],
-          combos: [{name:'3 buổi', price:'680.000 ₫'},{name:'5 buổi', price:'1.100.000 ₫'},{name:'10 buổi', price:'2.100.000 ₫'}]
+          id: 'SO1', icon: '🌿', nameVi: 'Sạch & Cân Bằng (SO1)', nameEn: 'Clean & Balance',
+          duration: 60, price: 449000,
+          description: 'Dành cho da dầu mụn mức độ nhẹ: mụn ẩn, mụn đầu trắng, đầu đen, bít tắc nhẹ.',
+          steps: ['Làm sạch','Xử lý mụn cơ bản','Làm dịu','Giảm đỏ','Phục hồi'],
+          combos: [{name:'Thẻ 3 buổi', price:'1.255.000 đ'},{name:'Thẻ 6 buổi', price:'1.995.000 đ'}]
         },
         {
-          id: 'dau_mun_02', icon: '✨', nameVi: 'Điều trị dầu mụn chuyên sâu (SO2)', nameEn: 'Advanced Acne & Oil Treatment',
-          duration: 90, price: 380000,
-          description: 'Phác đồ điều trị chuyên sâu kết hợp công nghệ hiện đại, hiệu quả tối ưu với da nhiều dầu, mụn viêm và mụn cám.',
-          steps: ['Tẩy trang kép (dầu + sữa)','Tẩy da chết bằng enzyme','Xông hơi ôzôn kháng khuẩn','Lấy nhân mụn & hút ẩm sâu','Thẩm thấu serum cân bằng nhờn bằng máy','Đắp mặt nạ clay detox','Thoa kem phục hồi & SPF'],
-          combos: [{name:'3 buổi', price:'1.050.000 ₫'},{name:'5 buổi', price:'1.700.000 ₫'},{name:'10 buổi', price:'3.200.000 ₫'}]
+          id: 'SO2', icon: '✨', nameVi: 'Điều Trị & Phục Hồi (SO2)', nameEn: 'Treatment & Recovery',
+          duration: 100, price: 499000,
+          description: 'Dành cho da mụn hỗn hợp, sần, mụn mủ, viêm (Bao gồm Peel).',
+          steps: ['Làm sạch sâu','Xử lý nhân mụn','Peel','Làm dịu','Phục hồi'],
+          combos: [{name:'Thẻ 3 buổi', price:'2.245.000 đ'},{name:'Thẻ 6 buổi', price:'2.025.000 đ'}]
         },
         {
-          id: 'dau_mun_03', icon: '🧬', nameVi: 'Peel da trị mụn (SO3)', nameEn: 'Chemical Peel for Acne',
-          duration: 45, price: 500000,
-          description: 'Sử dụng các hoạt chất sinh học loại bỏ tế bào chết, đẩy nhanh tái tạo da và gom cồi mụn nhanh chóng.',
-          steps: ['Làm sạch da chuẩn y khoa','Sát khuẩn bề mặt','Thoa hoạt chất Peel chuyên dụng','Làm dịu bằng điện di lạnh','Đắp mặt nạ phục hồi'],
-          combos: [{name:'3 buổi', price:'1.350.000 ₫'},{name:'5 buổi', price:'2.200.000 ₫'}]
+          id: 'SO3', icon: '🧬', nameVi: 'Mụn Vùng Lưng (SO3)', nameEn: 'Back Acne Treatment',
+          duration: 90, price: 449000,
+          description: 'Dành cho da mụn, có vết thâm đỏ, thâm đen vùng lưng (Bao gồm Peel).',
+          steps: ['Làm sạch','Giảm mụn','Peel','Làm dịu','Phục hồi'],
+          combos: [{name:'Thẻ 3 buổi', price:'2.025.000 đ'},{name:'Thẻ 6 buổi', price:'2.315.000 đ'}]
         },
         {
-          id: 'dau_mun_04', icon: '❄️', nameVi: 'Điện di lạnh phục hồi (SO4)', nameEn: 'Cold Electrophoresis Recovery',
-          duration: 30, price: 200000,
-          description: 'Làm dịu da tức thì sau nặn mụn, thu nhỏ lỗ chân lông và đẩy sâu tinh chất phục hồi.',
-          steps: ['Làm sạch nhẹ nhàng','Thoa serum phục hồi B5/HA','Điện di lạnh 15-20 phút','Khóa ẩm'],
-          combos: [{name:'5 buổi', price:'900.000 ₫'},{name:'10 buổi', price:'1.700.000 ₫'}]
+          id: 'SO4', icon: '❄️', nameVi: 'Cá Nhân Hóa (SO4)', nameEn: 'Personalized Acne Care',
+          duration: 80, price: 549000,
+          description: 'Điều chỉnh phác đồ phù hợp với làn da hiện tại, xử lý nhiều vấn đề cùng lúc.',
+          steps: ['Phác đồ mẫu theo buổi'],
+          combos: []
         }
       ]
     },
@@ -775,113 +801,123 @@ const SERVICE_EXTENDED_DATA = {
       id: 'kho_xin', icon: '💧', label: 'Chăm sóc da khô & xỉn màu',
       services: [
         {
-          id: 'kho_xin_01', icon: '💧', nameVi: 'Phục hồi da khô căng (SD1)', nameEn: 'Dry Skin Restoration',
-          duration: 60, price: 280000,
-          description: 'Cung cấp độ ẩm tối ưu, phục hồi hàng rào bảo vệ da, mang lại vẻ mềm mại và tươi sáng.',
-          steps: ['Làm sạch dịu nhẹ','Tẩy da chết AHA/BHA','Xông hơi phun sương khoáng','Đắp mặt nạ ceramide','Thẩm thấu HA serum','Thoa kem dưỡng ẩm'],
-          combos: [{name:'3 buổi', price:'780.000 ₫'},{name:'5 buổi', price:'1.250.000 ₫'}]
+          id: 'SD1', icon: '💧', nameVi: 'Cấp Ẩm & Làm Dịu (SD1)', nameEn: 'Hydrate & Soothe',
+          duration: 60, price: 399000,
+          description: 'Chăm sóc thường xuyên dành cho da thiếu ẩm nhẹ, duy trì độ ẩm lý tưởng.',
+          steps: ['Chăm sóc da cơ bản','Cấp ẩm','Làm dịu','Massage mặt'],
+          combos: [{name:'Thẻ 5 buổi', price:'1.800.000 đ'},{name:'Thẻ 10 buổi', price:'3.390.000 đ'}]
         },
         {
-          id: 'kho_xin_02', icon: '🌟', nameVi: 'Dưỡng trắng & sáng da (SD2)', nameEn: 'Brightening Treatment',
-          duration: 75, price: 350000,
-          description: 'Liệu trình làm sáng da, mờ thâm nám, đồng đều màu da và tăng cường độ rạng rỡ.',
-          steps: ['Làm sạch & tẩy trang','Tẩy da chết Vitamin C','Thẩm thấu serum trắng sáng','Đắp mặt nạ chuyên sâu','Massage mặt','Dưỡng sáng & SPF'],
-          combos: [{name:'3 buổi', price:'960.000 ₫'},{name:'5 buổi', price:'1.550.000 ₫'},{name:'10 buổi', price:'2.950.000 ₫'}]
+          id: 'SD2', icon: '🌟', nameVi: 'Cấp Ẩm Sâu (SD2)', nameEn: 'Deep Hydration',
+          duration: 100, price: 449000,
+          description: 'Liệu trình cung cấp độ ẩm tức thì. Nổi bật với kỹ thuật điện di lạnh.',
+          steps: ['Làm sạch sâu','Bổ sung ẩm','Đắp mặt nạ dưỡng sâu'],
+          combos: [{name:'Thẻ 3 buổi', price:'1.255.000 đ'},{name:'Thẻ 6 buổi', price:'2.395.000 đ'}]
         },
         {
-          id: 'kho_xin_03', icon: '🍇', nameVi: 'Thải độc tố Oxygen (SD3)', nameEn: 'Oxygen Detox Treatment',
-          duration: 60, price: 400000,
-          description: 'Cung cấp oxy tươi tinh khiết giúp da hít thở, loại bỏ bụi bẩn ô nhiễm và độc tố sâu bên trong.',
-          steps: ['Làm sạch da','Hút mụn & bã nhờn','Phun Oxy tươi áp lực cao','Đắp mặt nạ thải độc','Thoa tinh chất bảo vệ'],
-          combos: [{name:'3 buổi', price:'1.100.000 ₫'}]
+          id: 'SD3', icon: '🍇', nameVi: 'Sáng Da & Phục Hồi (SD3)', nameEn: 'Brighten & Recover',
+          duration: 90, price: 649000,
+          description: 'Liệu trình nổi bật với tế bào gốc đem lại làn da căng mịn, sáng bóng.',
+          steps: ['Cấp ẩm đủ độ ẩm','Dưỡng sáng','Phục hồi'],
+          combos: [{name:'Thẻ 3 buổi', price:'1.755.000 đ'},{name:'Thẻ 6 buổi', price:'3.315.000 đ'}]
         },
         {
-          id: 'kho_xin_04', icon: '🫧', nameVi: 'Cấp ẩm đa tầng (SD4)', nameEn: 'Multi-layer Hydration',
-          duration: 75, price: 420000,
-          description: 'Sử dụng công nghệ siêu âm đưa HA đa kích thước vào sâu các tầng da, giúp da căng bóng.',
-          steps: ['Làm sạch sâu','Siêu âm đẩy dưỡng chất HA','Đắp mặt nạ ngủ cấp nước','Massage vai gáy','Khóa ẩm'],
-          combos: [{name:'3 buổi', price:'1.150.000 ₫'},{name:'10 buổi', price:'3.600.000 ₫'}]
+          id: 'SD4', icon: '🫧', nameVi: 'Cá Nhân Hóa (SD4)', nameEn: 'Personalized Skin Care',
+          duration: 120, price: 699000,
+          description: 'Điều chỉnh phác đồ phù hợp với làn da hiện tại.',
+          steps: ['Phác đồ mẫu theo buổi'],
+          combos: []
         }
       ]
     },
     {
-      id: 'lao_hoa', icon: '🌸', label: 'Chống lão hóa',
+      id: 'lao_hoa', icon: '⏳', label: 'Chống lão hóa',
       services: [
         {
-          id: 'lao_hoa_01', icon: '🌸', nameVi: 'Trẻ hóa da cơ bản (SA1)', nameEn: 'Anti-Aging Basic',
-          duration: 75, price: 350000,
-          description: 'Kích thích tái tạo collagen, giảm nếp nhăn và cải thiện đàn hồi da hiệu quả.',
-          steps: ['Làm sạch & tẩy trang','Tẩy da chết nhẹ','Massage nâng cơ','Đắp mặt nạ collagen','Thẩm thấu peptide serum','Dưỡng chống lão hóa'],
-          combos: [{name:'3 buổi', price:'980.000 ₫'},{name:'5 buổi', price:'1.580.000 ₫'}]
+          id: 'SA1', icon: '⏳', nameVi: 'Dưỡng Ẩm & Thư Giãn (SA1)', nameEn: 'Moisturize & Relax',
+          duration: 60, price: 449000,
+          description: 'Dành cho làn da bắt đầu xuất hiện dấu hiệu lão hóa nhẹ.',
+          steps: ['Làm sạch','Cấp ẩm','Massage nâng cơ'],
+          combos: [{name:'Thẻ 3 buổi', price:'1.255.000 đ'},{name:'Thẻ 6 buổi', price:'2.395.000 đ'}]
         },
         {
-          id: 'lao_hoa_02', icon: '💎', nameVi: 'Trẻ hóa da chuyên sâu (SA2)', nameEn: 'Anti-Aging Advanced',
-          duration: 90, price: 450000,
-          description: 'Phác đồ tổng hợp kết hợp công nghệ RF và siêu âm nâng cơ mặt, xóa mờ nếp nhăn.',
-          steps: ['Làm sạch kép','RF nâng cơ (máy)','Siêu âm đẩy dưỡng chất','Đắp mặt nạ peptide gold','Massage lymphatic','Kem dưỡng cao cấp'],
-          combos: [{name:'3 buổi', price:'1.280.000 ₫'},{name:'10 buổi', price:'3.900.000 ₫'}]
+          id: 'SA2', icon: '🌟', nameVi: 'Săn Chắc & Đàn Hồi (SA2)', nameEn: 'Firming & Elasticity',
+          duration: 90, price: 699000,
+          description: 'Ưu tiên cho làn da từ 30-40 tuổi, nếp nhăn sâu, da chùng nhẹ.',
+          steps: ['Massage nâng cơ chuyên sâu','Mặt nạ tăng đàn hồi','Điện di'],
+          combos: [{name:'Thẻ 3 buổi', price:'1.935.000 đ'},{name:'Thẻ 6 buổi', price:'3.690.000 đ'}]
         },
         {
-          id: 'lao_hoa_03', icon: '⚜️', nameVi: 'Mặt nạ vàng 24K Luxury (SA4)', nameEn: '24K Gold Luxury Mask',
-          duration: 60, price: 480000,
-          description: 'Liệu pháp sang trọng giúp làm sáng da, chống oxy hóa cực mạnh và rạng rỡ.',
-          steps: ['Làm sạch da','Thẩm thấu tinh thể vàng','Đắp mặt nạ lá vàng 24K','Massage đầu thư giãn','Khóa dưỡng chất'],
-          combos: [{name:'5 buổi', price:'2.200.000 ₫'}]
+          id: 'SA3', icon: '🧬', nameVi: 'Nâng Cơ Chuyên Sâu (SA3)', nameEn: 'Advanced Lifting',
+          duration: 120, price: 749000,
+          description: 'Phù hợp với làn da sau 40 tuổi, có dấu hiệu lão hóa rõ ràng.',
+          steps: ['Skinpen','Điện di dưỡng chất chuyên sâu'],
+          combos: [{name:'Thẻ 3 buổi', price:'2.100.000 đ'},{name:'Thẻ 6 buổi', price:'4.075.000 đ'}]
+        },
+        {
+          id: 'SA4', icon: '👑', nameVi: 'Cá Nhân Hóa (SA4)', nameEn: 'Personalized Anti-Aging',
+          duration: 120, price: 799000,
+          description: 'Điều chỉnh phác đồ phù hợp với làn da hiện tại.',
+          steps: ['Phác đồ mẫu theo buổi'],
+          combos: []
         }
       ]
     },
     {
-      id: 'massage_mat', icon: '💆', label: 'Massage mặt',
+      id: 'body_care', icon: '🫧', label: 'Chăm sóc cơ thể',
       services: [
         {
-          id: 'mas_mat_01', icon: '💆', nameVi: 'Massage thư giãn mặt', nameEn: 'Facial Relaxation Massage',
-          duration: 45, price: 200000,
-          description: 'Massage cơ mặt theo kỹ thuật Nhật Bản, giảm stress, tăng tuần hoàn máu và giúp da hồng hào.',
-          steps: ['Làm sạch nhẹ','Thoa dầu massage chuyên dụng','Massage 9 điểm huyệt đạo','Ấn huyệt khai thông','Đắp khăn ấm & thư giãn'],
-          combos: [{name:'3 buổi', price:'560.000 ₫'},{name:'5 buổi', price:'900.000 ₫'}]
+          id: 'BS', icon: '🫧', nameVi: 'Sáng Mịn (BS)', nameEn: 'Bright & Smooth',
+          duration: 45, price: 199000,
+          description: 'Loại bỏ lớp da sần, mang lại cảm giác sạch và mịn ngay tức thì.',
+          steps: ['Tẩy da chết toàn thân','Massage nhẹ'],
+          combos: [{name:'Thẻ 3 buổi', price:'537.000 đ'},{name:'Thẻ 5 buổi', price:'845.000 đ'}]
         },
         {
-          id: 'mas_mat_02', icon: '🌺', nameVi: 'Massage nâng cơ mặt', nameEn: 'Lifting Facial Massage',
-          duration: 60, price: 280000,
-          description: 'Kỹ thuật massage nâng cơ chuyên sâu, làm săn chắc da, giảm chảy xệ và định hình khuôn mặt.',
-          steps: ['Làm sạch & dưỡng ẩm lót','Thoa serum nâng cơ','Massage bạch huyết (lymph drainage)','Kỹ thuật nâng cơ Kobido','Đắp mặt nạ nâng cơ collagen','Thoa kem dưỡng hoàn thiện'],
-          combos: [{name:'3 buổi', price:'780.000 ₫'},{name:'5 buổi', price:'1.250.000 ₫'}]
+          id: 'BW', icon: '🥛', nameVi: 'Sáng Ẩm (BW)', nameEn: 'Bright & Moist',
+          duration: 90, price: 399000,
+          description: 'Phù hợp với da khô, thiếu ẩm, dưỡng sáng hoặc cần chăm sóc nhẹ nhàng.',
+          steps: ['Ủ dưỡng toàn thân','Massage đầu thư giãn'],
+          combos: [{name:'Thẻ 3 buổi', price:'1.065.000 đ'},{name:'Thẻ 5 buổi', price:'1.665.000 đ'}]
+        },
+        {
+          id: 'CB', icon: '✨', nameVi: 'Dưỡng Thể Toàn Diện (CB)', nameEn: 'Full Body Care',
+          duration: 150, price: 499000,
+          description: 'Kết hợp giữa tẩy tế bào chết và dưỡng sâu toàn thân.',
+          steps: ['Tẩy tế bào chết - Massage nhẹ','Ủ dưỡng toàn thân'],
+          combos: [{name:'Thẻ 3 buổi', price:'1.399.000 đ'}]
+        },
+        {
+          id: 'B1', icon: '💪', nameVi: 'Thư Giãn Vùng Tay (B1)', nameEn: 'Hand Relaxation',
+          duration: 30, price: 99000,
+          description: 'Giải tỏa nhanh cảm giác mỏi và căng cơ vùng tay.',
+          steps: ['Massage tay - lòng bàn tay','Làm ấm vùng tay với đá nóng'],
+          combos: [{name:'Thẻ 5 buổi', price:'+1 buổi'},{name:'Thẻ 10 buổi', price:'+2 buổi'}]
+        },
+        {
+          id: 'B2', icon: '🦵', nameVi: 'Thư Giãn Vùng Chân (B2)', nameEn: 'Leg Relaxation',
+          duration: 60, price: 129000,
+          description: 'Lựa chọn phù hợp sau khi di chuyển nhiều, chơi thể thao.',
+          steps: ['Ngâm chân thảo mộc','Massage vùng chân - đá nóng'],
+          combos: [{name:'Thẻ 5 buổi', price:'+1 buổi'},{name:'Thẻ 10 buổi', price:'+2 buổi'}]
+        },
+        {
+          id: 'B3', icon: '💆‍♂️', nameVi: 'Giải Tỏa Vai Gáy (B3)', nameEn: 'Shoulder & Neck Relief',
+          duration: 90, price: 259000,
+          description: 'Phù hợp với khách hàng ngồi hoặc cúi nhiều. Tập trung vùng căng nhất.',
+          steps: ['Giãn cơ vùng lưng - cổ vai gáy','Massage chuyên sâu - đá nóng'],
+          combos: [{name:'Thẻ 5 buổi', price:'+1 buổi'}]
+        },
+        {
+          id: 'B4', icon: '💆', nameVi: 'Thư Giãn Toàn Thân (B4)', nameEn: 'Full Body Relaxation',
+          duration: 130, price: 399000,
+          description: 'Một buổi thư giãn trọn vẹn, giúp thả lỏng toàn bộ cơ thể.',
+          steps: ['Massage sâu vùng cơ toàn thân','Massage đầu','Thuốc đắp giải cơ'],
+          combos: [{name:'Thẻ 5 buổi', price:'+1 buổi'}]
         }
       ]
-    },
-    {
-      id: 'massage_body', icon: '💪', label: 'Massage cơ thể',
-      services: [
-        {
-          id: 'mas_body_01', icon: '💪', nameVi: 'Massage thư giãn (B1)', nameEn: 'Body Relaxation',
-          duration: 60, price: 300000,
-          description: 'Massage toàn thân phong cách Thụy Điển, giải tỏa căng thẳng và phục hồi năng lượng.',
-          steps: ['Ngâm chân thảo dược','Massage lưng & vai gáy','Massage tay chân','Thư giãn tinh dầu'],
-          combos: [{name:'3 buổi', price:'840.000 ₫'},{name:'10 buổi', price:'2.600.000 ₫'}]
-        },
-        {
-          id: 'mas_body_02', icon: '🏮', nameVi: 'Massage đá nóng (B2)', nameEn: 'Hot Stone Massage',
-          duration: 75, price: 380000,
-          description: 'Kết hợp đá bazan nhiệt và massage chuyên sâu, tan biến mệt mỏi tức thì.',
-          steps: ['Ủ ấm toàn thân','Massage đá nóng vai gáy','Massage tay chân với đá','Đặt đá dọc cột sống','Thư giãn'],
-          combos: [{name:'3 buổi', price:'1.060.000 ₫'},{name:'5 buổi', price:'1.700.000 ₫'}]
-        },
-        {
-          id: 'body_scrub_01', icon: '☕', nameVi: 'Tẩy da chết Cafe & Sữa (BS)', nameEn: 'Coffee & Milk Scrub',
-          duration: 45, price: 250000,
-          description: 'Loại bỏ tế bào chết, làm mịn da và sáng tông tự nhiên.',
-          steps: ['Làm ướt cơ thể','Massage hạt cafe & sữa','Tẩy kỹ vùng da sần','Xả sạch','Dưỡng thể'],
-          combos: [{name:'3 buổi', price:'680.000 ₫'}]
-        },
-        {
-          id: 'body_white_01', icon: '🥛', nameVi: 'Ủ trắng men sữa (BW)', nameEn: 'Milk Whitening',
-          duration: 60, price: 450000,
-          description: 'Liệu pháp làm trắng an toàn từ men sữa tự nhiên, giúp da hồng hào bật tông.',
-          steps: ['Tẩy da chết nhẹ','Thoa men sữa ủ trắng','Quấn giữ nhiệt','Massage đầu vai gáy','Dưỡng khóa màu'],
-          combos: [{name:'5 buổi', price:'2.000.000 ₫'}]
-        }
-      ]
-    }  ]
+    }
+  ]
 };
 
 // ── I18N ──────────────────────────────────────────────────────
@@ -981,25 +1017,17 @@ function showToast(msg,type='',dur=3000){
 }
 
 async function api(action, payload = {}, timeout = 15000) {
-  // Add session token to all protected requests
   if (state.sessionToken) {
     payload.token = state.sessionToken;
   }
-
-  // 1. Try google.script.run if in GAS environment
   if (typeof google !== 'undefined' && google.script && google.script.run) {
     return new Promise((resolve, reject) => {
       google.script.run
         .withSuccessHandler(res => resolve(res))
         .withFailureHandler(err => resolve({ success: false, error: err.message }))
-        .doPost({ action, payload: JSON.stringify(payload) }); // Adjust based on how you call it
-        // Actually, GAS usually calls functions directly, but we map to doPost logic
-        // For simplicity in this project, we'll keep the fetch-to-exec as the primary model
-        // UNLESS it's served via doGet.
+        .doPost({ action, payload: JSON.stringify(payload) });
     });
   }
-
-  // 2. Default Fetch to GAS Exec URL
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
@@ -1079,30 +1107,35 @@ function showPage(name, options = {}){
     if(dash) {
       dash.style.display='flex';
     }
-    loadAdminBookings();
+    switchAdminPanel('bookings');
   }
 }
 
 function showAdminLoginModal() {
-  const user = prompt("Admin Username:");
-  const pass = prompt("Admin Password:");
+  document.getElementById('adminUser').value = '';
+  document.getElementById('adminPass').value = '';
+  document.getElementById('modalAdminLogin').classList.add('show');
+}
+async function submitAdminLogin() {
+  const user = document.getElementById('adminUser').value.trim();
+  const pass = document.getElementById('adminPass').value;
   if (!user || !pass) return;
   
+  closeModal('modalAdminLogin');
   showLoading(true, 'Authenticating Admin...');
-  api('adminLogin', { username: user, password: pass }).then(res => {
-    showLoading(false);
-    if (res.success) {
-      state.sessionToken = res.token;
-      state.customer = { name: res.admin.name, userType: 'admin', isAdmin: true };
-      localStorage.setItem('willowySession', res.token);
-      localStorage.setItem('willowyCustomer', JSON.stringify(state.customer));
-      showToast('Admin access granted', 'success');
-      showPage('admin');
-      renderNav();
-    } else {
-      showToast('Invalid admin credentials: ' + res.error, 'error');
-    }
-  });
+  const res = await api('adminLogin', { username: user, password: pass });
+  showLoading(false);
+  if (res.success) {
+    state.sessionToken = res.token;
+    state.customer = { name: res.admin.name, userType: 'admin', isAdmin: true };
+    localStorage.setItem('willowySession', res.token);
+    localStorage.setItem('willowyCustomer', JSON.stringify(state.customer));
+    showToast('Admin access granted', 'success');
+    showPage('admin');
+    renderNav();
+  } else {
+    showToast('Invalid admin credentials: ' + res.error, 'error');
+  }
 }
 function goHome(){showPage('home');}
 
@@ -1115,7 +1148,6 @@ async function renderHomePage(){
   const grid=document.getElementById('homeServices');
   grid.style.display = 'block';
 
-  // Render từ SERVICE_EXTENDED_DATA
   grid.innerHTML = SERVICE_EXTENDED_DATA.categories.map(cat => `
     <div class="category-section">
       <div class="category-label">${cat.icon} ${cat.label}</div>
@@ -1194,12 +1226,12 @@ async function quickBook(svcId){
   }
   showLoading(false);
 
-  // Tìm backend service
+  // Tìm backend service dựa trên ID hoặc tên
   let backendSvc = state.services.find(s => s.serviceId === svcId);
   if(!backendSvc) {
     const extSvc = findExtendedService(svcId);
     if(extSvc) {
-      backendSvc = state.services.find(s => s.nameVi === extSvc.nameVi || s.nameEn === extSvc.nameEn);
+      backendSvc = state.services.find(s => s.serviceId === extSvc.id || s.nameVi === extSvc.nameVi || s.nameEn === extSvc.nameEn);
     }
   }
 
@@ -1209,6 +1241,7 @@ async function quickBook(svcId){
     await loadTechnicians(backendSvc.serviceId);
     goStep(2);
   } else {
+    // Nếu không tìm thấy, vào trang booking bước 1
     showPage('booking');
   }
 }
@@ -1344,7 +1377,7 @@ function resetBooking(){
 
 async function loadServices(){
   if(!state.services.length){const res=await api('getServices');if(res.success)state.services=res.services;}
-  const icons={'SVC_001':'🪷','SVC_002':'💆','SVC_003':'💪','SVC_004':'✨','SVC_005':'🌿'};
+  const icons={'H1':'🪷','H2':'✨','H3':'💆','H4':'👑','SO1':'🌿','SO2':'✨','SO3':'🧬','SO4':'❄️','SD1':'💧','SD2':'🌟','SD3':'🍇','SD4':'🫧','SA1':'⏳','SA2':'🌟','SA3':'🧬','SA4':'👑','BS':'🫧','BW':'🥛','CB':'✨','B1':'💪','B2':'🦵','B3':'💆‍♂️','B4':'💆'};
   const el=document.getElementById('serviceList');if(!el)return;
   el.innerHTML=state.services.map(s=>`
     <div class="svc-card" id="scard_${s.serviceId}" onclick="selectService('${s.serviceId}')">

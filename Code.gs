@@ -639,31 +639,40 @@ function setupServicesData() {
   }
   
   const services = [
-    { serviceId: 'dau_mun_01', nameVi: 'Điều trị dầu mụn cơ bản (SO1)', nameEn: 'Basic Acne & Oil Treatment', duration: 60, price: 250000, isActive: true },
-    { serviceId: 'dau_mun_02', nameVi: 'Điều trị dầu mụn chuyên sâu (SO2)', nameEn: 'Advanced Acne & Oil Treatment', duration: 90, price: 380000, isActive: true },
-    { serviceId: 'dau_mun_03', nameVi: 'Peel da trị mụn (SO3)', nameEn: 'Chemical Peel for Acne', duration: 45, price: 500000, isActive: true },
-    { serviceId: 'dau_mun_04', nameVi: 'Điện di lạnh phục hồi (SO4)', nameEn: 'Cold Electrophoresis Recovery', duration: 30, price: 200000, isActive: true },
+    // CHĂM SÓC MÁI TÓC
+    { serviceId: 'H1', nameVi: 'Nhẹ (H1)', nameEn: 'Light Hair Wash', duration: 45, price: 70000, isActive: true },
+    { serviceId: 'H2', nameVi: 'Thả Lỏng (H2)', nameEn: 'Relaxing Hair Wash', duration: 90, price: 179000, isActive: true },
+    { serviceId: 'H3', nameVi: 'Phục Hồi (H3)', nameEn: 'Recovery Hair Wash', duration: 120, price: 269000, isActive: true },
+    { serviceId: 'H4', nameVi: 'Trọn Vẹn (H4)', nameEn: 'Complete Hair Wash', duration: 150, price: 299000, isActive: true },
+
+    // CHĂM SÓC DA - DẦU MỤN
+    { serviceId: 'SO1', nameVi: 'Sạch & Cân Bằng (SO1)', nameEn: 'Clean & Balance', duration: 60, price: 449000, isActive: true },
+    { serviceId: 'SO2', nameVi: 'Điều Trị & Phục Hồi (SO2)', nameEn: 'Treatment & Recovery', duration: 100, price: 499000, isActive: true },
+    { serviceId: 'SO3', nameVi: 'Mụn Vùng Lưng (SO3)', nameEn: 'Back Acne Treatment', duration: 90, price: 449000, isActive: true },
+    { serviceId: 'SO4', nameVi: 'Cá Nhân Hóa (SO4)', nameEn: 'Personalized Acne Care', duration: 80, price: 549000, isActive: true },
     
-    { serviceId: 'kho_xin_01', nameVi: 'Phục hồi da khô căng (SD1)', nameEn: 'Dry Skin Restoration', duration: 60, price: 280000, isActive: true },
-    { serviceId: 'kho_xin_02', nameVi: 'Dưỡng trắng & sáng da (SD2)', nameEn: 'Brightening Treatment', duration: 75, price: 350000, isActive: true },
-    { serviceId: 'kho_xin_03', nameVi: 'Thải độc tố Oxygen (SD3)', nameEn: 'Oxygen Detox Treatment', duration: 60, price: 400000, isActive: true },
-    { serviceId: 'kho_xin_04', nameVi: 'Cấp ẩm đa tầng (SD4)', nameEn: 'Multi-layer Hydration', duration: 75, price: 420000, isActive: true },
+    // CHĂM SÓC DA - KHÔ XỈN MÀU
+    { serviceId: 'SD1', nameVi: 'Cấp Ẩm & Làm Dịu (SD1)', nameEn: 'Hydrate & Soothe', duration: 60, price: 399000, isActive: true },
+    { serviceId: 'SD2', nameVi: 'Cấp Ẩm Sâu (SD2)', nameEn: 'Deep Hydration', duration: 100, price: 449000, isActive: true },
+    { serviceId: 'SD3', nameVi: 'Sáng Da & Phục Hồi (SD3)', nameEn: 'Brighten & Recover', duration: 90, price: 649000, isActive: true },
+    { serviceId: 'SD4', nameVi: 'Cá Nhân Hóa (SD4)', nameEn: 'Personalized Skin Care', duration: 120, price: 699000, isActive: true },
     
-    { serviceId: 'lao_hoa_01', nameVi: 'Trẻ hóa da cơ bản (SA1)', nameEn: 'Anti-Aging Basic', duration: 75, price: 350000, isActive: true },
-    { serviceId: 'lao_hoa_02', nameVi: 'Trẻ hóa da chuyên sâu (SA2)', nameEn: 'Anti-Aging Advanced', duration: 90, price: 450000, isActive: true },
-    { serviceId: 'lao_hoa_03', nameVi: 'Mặt nạ vàng 24K Luxury (SA4)', nameEn: '24K Gold Luxury Mask', duration: 60, price: 480000, isActive: true },
+    // CHĂM SÓC DA - LÃO HÓA
+    { serviceId: 'SA1', nameVi: 'Dưỡng Ẩm & Thư Giãn (SA1)', nameEn: 'Moisturize & Relax', duration: 60, price: 449000, isActive: true },
+    { serviceId: 'SA2', nameVi: 'Săn Chắc & Đàn Hồi (SA2)', nameEn: 'Firming & Elasticity', duration: 90, price: 699000, isActive: true },
+    { serviceId: 'SA3', nameVi: 'Nâng Cơ Chuyên Sâu (SA3)', nameEn: 'Advanced Lifting', duration: 120, price: 749000, isActive: true },
+    { serviceId: 'SA4', nameVi: 'Cá Nhân Hóa (SA4)', nameEn: 'Personalized Anti-Aging', duration: 120, price: 799000, isActive: true },
     
-    { serviceId: 'mas_mat_01', nameVi: 'Massage thư giãn mặt', nameEn: 'Facial Relaxation Massage', duration: 45, price: 200000, isActive: true },
-    { serviceId: 'mas_mat_02', nameVi: 'Massage nâng cơ mặt', nameEn: 'Lifting Facial Massage', duration: 60, price: 280000, isActive: true },
+    // CHĂM SÓC CƠ THỂ - SẠCH SÁNG
+    { serviceId: 'BS', nameVi: 'Sáng Mịn (BS)', nameEn: 'Bright & Smooth', duration: 45, price: 199000, isActive: true },
+    { serviceId: 'BW', nameVi: 'Sáng Ẩm (BW)', nameEn: 'Bright & Moist', duration: 90, price: 399000, isActive: true },
+    { serviceId: 'CB', nameVi: 'Dưỡng Thể Toàn Diện (CB)', nameEn: 'Full Body Care', duration: 150, price: 499000, isActive: true },
     
-    { serviceId: 'mas_body_01', nameVi: 'Massage thư giãn (B1)', nameEn: 'Body Relaxation', duration: 60, price: 300000, isActive: true },
-    { serviceId: 'mas_body_02', nameVi: 'Massage đá nóng (B2)', nameEn: 'Hot Stone Massage', duration: 75, price: 380000, isActive: true },
-    { serviceId: 'body_scrub_01', nameVi: 'Tẩy da chết Cafe & Sữa (BS)', nameEn: 'Coffee & Milk Scrub', duration: 45, price: 250000, isActive: true },
-    { serviceId: 'body_white_01', nameVi: 'Ủ trắng men sữa (BW)', nameEn: 'Milk Whitening', duration: 60, price: 450000, isActive: true },
-    
-    { serviceId: 'goi_dau_01', nameVi: 'Gội đầu thư giãn (H1)', nameEn: 'Relaxing Wash', duration: 45, price: 150000, isActive: true },
-    { serviceId: 'goi_dau_03', nameVi: 'Gội + Massage vai gáy (H3)', nameEn: 'Wash & Shoulder Massage', duration: 60, price: 200000, isActive: true },
-    { serviceId: 'goi_dau_04', nameVi: 'Gội đầu dưỡng sinh Premium (H4)', nameEn: 'Premium Wellness Wash', duration: 90, price: 350000, isActive: true }
+    // CHĂM SÓC CƠ THỂ - MASSAGE
+    { serviceId: 'B1', nameVi: 'Thư Giãn Vùng Tay (B1)', nameEn: 'Hand Relaxation', duration: 30, price: 99000, isActive: true },
+    { serviceId: 'B2', nameVi: 'Thư Giãn Vùng Chân (B2)', nameEn: 'Leg Relaxation', duration: 60, price: 129000, isActive: true },
+    { serviceId: 'B3', nameVi: 'Giải Tỏa Vai Gáy (B3)', nameEn: 'Shoulder & Neck Relief', duration: 90, price: 259000, isActive: true },
+    { serviceId: 'B4', nameVi: 'Thư Giãn Toàn Thân (B4)', nameEn: 'Full Body Relaxation', duration: 130, price: 399000, isActive: true }
   ];
 
   // Ghi dữ liệu vào sheet
