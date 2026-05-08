@@ -1134,13 +1134,16 @@ async function renderHomePage(){
   if(!state.services.length) api('getServices').then(res => { if(res.success) state.services = res.services; });
 }
 
-function showServiceDetail(svcId) {
-  // Tìm dịch vụ trong extended data
-  let svc = null;
+function findExtendedService(svcId) {
   for (const cat of SERVICE_EXTENDED_DATA.categories) {
-    svc = cat.services.find(s => s.id === svcId);
-    if (svc) break;
+    const svc = cat.services.find(s => s.id === svcId);
+    if (svc) return svc;
   }
+  return null;
+}
+
+function showServiceDetail(svcId) {
+  const svc = findExtendedService(svcId);
   if (!svc) return;
 
   // Điền vào modal
@@ -1185,23 +1188,27 @@ async function quickBook(svcId){
   if(!state.customer){showPage('auth');return;}
   
   showLoading(true, 'Đang khởi tạo lịch đặt...');
-  // Đảm bảo đã tải danh sách dịch vụ từ backend để so khớp
   if(!state.services.length) {
     const res = await api('getServices');
     if(res.success) state.services = res.services;
   }
   showLoading(false);
 
-  const backendSvc = state.services.find(s => s.serviceId === svcId);
+  // Tìm backend service
+  let backendSvc = state.services.find(s => s.serviceId === svcId);
+  if(!backendSvc) {
+    const extSvc = findExtendedService(svcId);
+    if(extSvc) {
+      backendSvc = state.services.find(s => s.nameVi === extSvc.nameVi || s.nameEn === extSvc.nameEn);
+    }
+  }
+
   if(backendSvc){
-    state.booking.serviceId = svcId;
-    // Mở trang booking nhưng KHÔNG reset
+    state.booking.serviceId = backendSvc.serviceId;
     showPage('booking', { skipReset: true });
-    // Chuyển sang bước 2 (Kỹ thuật viên) ngay lập tức
-    await loadTechnicians(svcId);
+    await loadTechnicians(backendSvc.serviceId);
     goStep(2);
   } else {
-    // Không khớp ID cứng => mở booking bình thường để khách chọn
     showPage('booking');
   }
 }
@@ -1560,7 +1567,9 @@ async function confirmBooking(){
   showLoading(false);
   if(!res||!res.success){
     const errs={slot_taken:t('errSlotTaken'),past_time:t('errPast'),network_error:'Lỗi kết nối!'};
-    showToast(errs[res&&res.error]||'Đặt lịch thất bại!','error');return;
+    const errMsg = (res && res.error) ? (errs[res.error] || `Lỗi: ${res.error}`) : 'Đặt lịch thất bại!';
+    showToast(errMsg,'error', 5000);
+    return;
   }
   if(res.skippedDates && res.skippedDates.length > 0) {
     showToast(`Đã đặt thành công! ${res.skippedDates.length} buổi bị bỏ qua do kín lịch.`, 'success', 6000);
