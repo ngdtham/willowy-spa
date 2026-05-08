@@ -475,7 +475,7 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 
 <!-- ADMIN -->
 <div class="page" id="pageAdmin">
-  <div id="adminDashboard" style="display:none;flex:1;flex-direction:column">
+  <div id="adminDashboard" style="flex:1;flex-direction:column">
     <div class="admin-layout">
       <!-- Sidebar -->
       <div class="admin-sidebar">
@@ -1052,7 +1052,7 @@ function renderBottomNav(){
 }
 
 // ── PAGES ─────────────────────────────────────────────────────
-function showPage(name){
+function showPage(name, options = {}){
   if((name==='booking'||name==='bookings'||name==='profile')&&!state.customer){showToast(t('needLogin'));showPage('auth');return;}
   state.currentPage=name;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1061,7 +1061,11 @@ function showPage(name){
   document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
   const map={home:'bnHome',booking:'bnBook',bookings:'bnBkgs',profile:'bnProf'};
   if(map[name]){const b=document.getElementById(map[name]);if(b)b.classList.add('active');}
-  if(name==='booking'){resetBooking();loadServices();}
+  
+  if(name==='booking'){
+    if(!options.skipReset) resetBooking();
+    loadServices();
+  }
   if(name==='bookings') loadBookings();
   if(name==='profile') renderProfile();
   if(name==='home') renderHomePage();
@@ -1074,9 +1078,6 @@ function showPage(name){
     const dash = document.getElementById('adminDashboard');
     if(dash) {
       dash.style.display='flex';
-      console.log("Admin Dashboard showing...");
-    } else {
-      console.error("adminDashboard element not found");
     }
     loadAdminBookings();
   }
@@ -1112,14 +1113,9 @@ async function renderHomePage(){
   document.getElementById('heroDesc').textContent=t('heroDesc');
   document.getElementById('svcTitle').textContent=t('svcTitle');
   const grid=document.getElementById('homeServices');
-
-  // Hiển thị skeleton loading
-  grid.innerHTML=Array(4).fill(0).map(()=>`<div class="svc-card" style="pointer-events:none"><div class="svc-icon skel" style="background:var(--stone)"></div><div class="skel" style="height:14px;width:70%;margin-bottom:8px"></div><div class="skel" style="height:11px;width:40%"></div></div>`).join('');
-
-  // Thay grid thành section wrapper (bỏ grid, dùng category sections)
   grid.style.display = 'block';
 
-  // Render từ SERVICE_EXTENDED_DATA (không cần API)
+  // Render từ SERVICE_EXTENDED_DATA
   grid.innerHTML = SERVICE_EXTENDED_DATA.categories.map(cat => `
     <div class="category-section">
       <div class="category-label">${cat.icon} ${cat.label}</div>
@@ -1133,6 +1129,9 @@ async function renderHomePage(){
           </div>`).join('')}
       </div>
     </div>`).join('');
+    
+  // Pre-fetch services to state.services for quickBook later
+  if(!state.services.length) api('getServices').then(res => { if(res.success) state.services = res.services; });
 }
 
 function showServiceDetail(svcId) {
@@ -1182,13 +1181,24 @@ function showServiceDetail(svcId) {
   document.getElementById('modalServiceDetail').classList.add('show');
 }
 
-function quickBook(svcId){
+async function quickBook(svcId){
   if(!state.customer){showPage('auth');return;}
-  // Nếu serviceId từ backend khớp, dùng luôn; nếu không, mở trang booking bước 1
+  
+  showLoading(true, 'Đang khởi tạo lịch đặt...');
+  // Đảm bảo đã tải danh sách dịch vụ từ backend để so khớp
+  if(!state.services.length) {
+    const res = await api('getServices');
+    if(res.success) state.services = res.services;
+  }
+  showLoading(false);
+
   const backendSvc = state.services.find(s => s.serviceId === svcId);
   if(backendSvc){
     state.booking.serviceId = svcId;
-    showPage('booking');
+    // Mở trang booking nhưng KHÔNG reset
+    showPage('booking', { skipReset: true });
+    // Chuyển sang bước 2 (Kỹ thuật viên) ngay lập tức
+    await loadTechnicians(svcId);
     goStep(2);
   } else {
     // Không khớp ID cứng => mở booking bình thường để khách chọn
