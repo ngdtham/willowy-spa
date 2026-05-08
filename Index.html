@@ -32,8 +32,8 @@ input,select,textarea{font-family:var(--ff);outline:none}
 
 /* ── NAV ─── */
 nav.top-nav{position:sticky;top:0;z-index:100;height:var(--nav-h);background:rgba(250,247,242,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--stone);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px}
-.nav-brand{font-size:18px;font-weight:600;color:var(--gold);cursor:pointer;letter-spacing:.02em}
-.nav-brand em{font-style:italic;color:var(--moss)}
+.nav-brand{display:flex;align-items:center;gap:8px;cursor:pointer}
+.nav-logo{height:32px;width:auto;border-radius:4px}
 .nav-actions{display:flex;align-items:center;gap:8px}
 .nav-btn{background:none;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;color:var(--sub);transition:.2s}
 .nav-btn:hover{color:var(--gold)}
@@ -326,7 +326,7 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 <div id="app">
 <!-- NAV -->
 <nav class="top-nav">
-  <div class="nav-brand" onclick="goHome()">🪷 Willowy<em>Spa</em></div>
+  <div class="nav-brand" onclick="goHome()"><img src="logo.jpg" alt="Willowy Spa" class="nav-logo"></div>
   <div class="nav-actions">
     <div class="lang-toggle">
       <button class="lang-btn active" id="btnVI" onclick="setLang('vi')">VI</button>
@@ -363,7 +363,7 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 <div class="page" id="pageAuth">
   <div class="auth-wrap">
     <div class="auth-box">
-      <div class="auth-logo"><h2>🪷 Willowy Spa</h2><p id="authSubtitle"></p></div>
+      <div class="auth-logo"><img src="logo.jpg" alt="Logo" style="height:60px;width:auto;margin-bottom:12px;border-radius:8px"><p id="authSubtitle"></p></div>
       <div class="tabs">
         <button class="tab active" onclick="switchAuthTab('login')" id="tabLogin"></button>
         <button class="tab" onclick="switchAuthTab('register')" id="tabRegister"></button>
@@ -479,7 +479,7 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
     <div class="admin-layout">
       <!-- Sidebar -->
       <div class="admin-sidebar">
-        <div class="admin-sidebar-logo"><span>🪷 Willowy Spa</span><small>Admin Panel</small></div>
+        <div class="admin-sidebar-logo"><img src="logo.jpg" alt="Logo" style="height:40px;width:auto;border-radius:6px"><small>Admin Panel</small></div>
         <div class="admin-nav-item active" onclick="switchAdminPanel('bookings')" id="anav-bookings">
           <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Lịch đặt
         </div>
@@ -713,6 +713,32 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzyfSdGC1HTLaZWeU5HeuyE
 const SERVICE_EXTENDED_DATA = {
   categories: [
     {
+      id: 'goi_dau', icon: '🪷', label: 'Gội đầu & chăm sóc tóc',
+      services: [
+        {
+          id: 'goi_dau_01', icon: '🪷', nameVi: 'Gội đầu thư giãn (H1)', nameEn: 'Relaxing Wash',
+          duration: 45, price: 150000,
+          description: 'Làm sạch sâu kết hợp massage da đầu giảm stress.',
+          steps: ['Chải tóc','Gội thảo dược','Massage da đầu','Xả dưỡng','Sấy khô'],
+          combos: [{name:'5 buổi', price:'700.000 ₫'},{name:'10 buổi', price:'1.300.000 ₫'}]
+        },
+        {
+          id: 'goi_dau_03', icon: '✨', nameVi: 'Gội + Massage vai gáy (H3)', nameEn: 'Wash & Shoulder Massage',
+          duration: 60, price: 200000,
+          description: 'Combo yêu thích: Gội đầu thư giãn và massage vai gáy chuyên sâu.',
+          steps: ['Gội sạch','Massage vai gáy 15p','Massage da đầu','Xả dưỡng','Sấy tạo kiểu'],
+          combos: [{name:'5 buổi', price:'940.000 ₫'},{name:'10 buổi', price:'1.800.000 ₫'}]
+        },
+        {
+          id: 'goi_dau_04', icon: '👑', nameVi: 'Gội đầu dưỡng sinh Premium (H4)', nameEn: 'Premium Wellness Wash',
+          duration: 90, price: 350000,
+          description: 'Kết hợp gội đầu thảo dược, đắp mặt nạ và massage tay chân vai gáy toàn diện.',
+          steps: ['Ngâm chân','Rửa mặt & đắp mặt nạ','Gội thảo dược 2 lần','Massage chuyên sâu vai gáy','Massage tay & chân','Xông khói bồ kết','Sấy tạo kiểu'],
+          combos: [{name:'3 buổi', price:'950.000 ₫'}]
+        }
+      ]
+    },
+    {
       id: 'dau_mun', icon: '🌿', label: 'Chăm sóc dầu mụn',
       services: [
         {
@@ -855,34 +881,7 @@ const SERVICE_EXTENDED_DATA = {
           combos: [{name:'5 buổi', price:'2.000.000 ₫'}]
         }
       ]
-    },
-    {
-      id: 'goi_dau', icon: '🪷', label: 'Gội đầu & chăm sóc tóc',
-      services: [
-        {
-          id: 'goi_dau_01', icon: '🪷', nameVi: 'Gội đầu thư giãn (H1)', nameEn: 'Relaxing Wash',
-          duration: 45, price: 150000,
-          description: 'Làm sạch sâu kết hợp massage da đầu giảm stress.',
-          steps: ['Chải tóc','Gội thảo dược','Massage da đầu','Xả dưỡng','Sấy khô'],
-          combos: [{name:'5 buổi', price:'700.000 ₫'},{name:'10 buổi', price:'1.300.000 ₫'}]
-        },
-        {
-          id: 'goi_dau_03', icon: '✨', nameVi: 'Gội + Massage vai gáy (H3)', nameEn: 'Wash & Shoulder Massage',
-          duration: 60, price: 200000,
-          description: 'Combo yêu thích: Gội đầu thư giãn và massage vai gáy chuyên sâu.',
-          steps: ['Gội sạch','Massage vai gáy 15p','Massage da đầu','Xả dưỡng','Sấy tạo kiểu'],
-          combos: [{name:'5 buổi', price:'940.000 ₫'},{name:'10 buổi', price:'1.800.000 ₫'}]
-        },
-        {
-          id: 'goi_dau_04', icon: '👑', nameVi: 'Gội đầu dưỡng sinh Premium (H4)', nameEn: 'Premium Wellness Wash',
-          duration: 90, price: 350000,
-          description: 'Kết hợp gội đầu thảo dược, đắp mặt nạ và massage tay chân vai gáy toàn diện.',
-          steps: ['Ngâm chân','Rửa mặt & đắp mặt nạ','Gội thảo dược 2 lần','Massage chuyên sâu vai gáy','Massage tay & chân','Xông khói bồ kết','Sấy tạo kiểu'],
-          combos: [{name:'3 buổi', price:'950.000 ₫'}]
-        }
-      ]
-    }
-  ]
+    }  ]
 };
 
 // ── I18N ──────────────────────────────────────────────────────
