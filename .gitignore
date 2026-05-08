@@ -1,1 +1,5 @@
 .vercel
+node_modules/
+*.xlsx
+generate_excel.js
+Service/

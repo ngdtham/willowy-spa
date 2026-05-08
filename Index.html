@@ -263,6 +263,41 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 .badge-active{background:#e8f5e9;color:#2e7d32}
 .badge-inactive{background:#fdecea;color:#c62828}
 
+/* ── SERVICE DETAIL MODAL ─── */
+.svc-detail-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
+.svc-detail-icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#f5ede0,#e8d8c0);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.svc-detail-meta{flex:1}
+.svc-detail-meta h3{font-size:18px;font-weight:700;color:var(--deep);margin-bottom:4px}
+.svc-detail-badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.svc-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.svc-badge-dur{background:#f0ebe2;color:var(--gold)}
+.svc-badge-price{background:#e8f3e8;color:var(--moss)}
+.svc-detail-desc{color:var(--sub);font-size:13px;line-height:1.6;margin-bottom:18px}
+.svc-steps-title{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:10px}
+.svc-steps-list{list-style:none;padding:0;margin-bottom:20px}
+.svc-steps-list li{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--stone);font-size:13px;color:var(--deep)}
+.svc-steps-list li:last-child{border:none}
+.step-bullet{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--moss));color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.svc-combos{background:var(--stone);border-radius:var(--r);padding:14px;margin-bottom:20px}
+.svc-combos-title{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-bottom:10px}
+.combo-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(44,33,24,.08);font-size:13px}
+.combo-row:last-child{border:none}
+.combo-name{color:var(--deep)}
+.combo-price{font-weight:700;color:var(--gold)}
+
+/* ── CATEGORY SECTION ─── */
+.category-section{margin-bottom:32px}
+.category-label{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);background:rgba(168,134,92,.1);padding:4px 12px;border-radius:20px;margin-bottom:14px}
+
+/* ── STAT CHIP INTERACTIVE ─── */
+.stat-chip.clickable{cursor:pointer;transition:.2s}
+.stat-chip.clickable:hover{background:var(--warm);transform:translateY(-2px)}
+.stat-chip.clickable:hover .val{color:var(--deep)}
+
+/* ── PROFILE EDIT FORM ─── */
+.profile-edit-form{padding-top:4px}
+.profile-field-readonly{background:var(--stone);color:var(--sub);cursor:not-allowed;border-color:var(--stone)}
+
 /* Responsive */
 @media(max-width:640px){
   .bottom-nav{display:block}
@@ -614,9 +649,241 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
   </div>
 </div>
 
+<!-- MODAL: SERVICE DETAIL -->
+<div class="modal-bg" id="modalServiceDetail">
+  <div class="modal" style="max-width:520px">
+    <div class="svc-detail-header">
+      <div class="svc-detail-icon" id="svcDetailIcon">🌸</div>
+      <div class="svc-detail-meta">
+        <h3 id="svcDetailName"></h3>
+        <div class="svc-detail-badges">
+          <span class="svc-badge svc-badge-dur" id="svcDetailDur"></span>
+          <span class="svc-badge svc-badge-price" id="svcDetailPrice"></span>
+        </div>
+      </div>
+    </div>
+    <p class="svc-detail-desc" id="svcDetailDesc"></p>
+    <div id="svcDetailStepsWrap">
+      <div class="svc-steps-title">Các bước thực hiện</div>
+      <ul class="svc-steps-list" id="svcDetailSteps"></ul>
+    </div>
+    <div id="svcDetailCombosWrap" style="display:none">
+      <div class="svc-combos">
+        <div class="svc-combos-title">Bảng giá combo</div>
+        <div id="svcDetailCombos"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalServiceDetail')">Đóng</button>
+      <button class="btn btn-primary" id="btnBookFromDetail" onclick="">💆 Đặt lịch ngay</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDIT PROFILE -->
+<div class="modal-bg" id="modalEditProfile">
+  <div class="modal" style="max-width:420px">
+    <h3>✏️ Chỉnh sửa thông tin</h3>
+    <div class="profile-edit-form">
+      <div class="form-group">
+        <label class="form-label">Số điện thoại (tài khoản đăng nhập)</label>
+        <input class="form-control profile-field-readonly" id="editPhone" type="tel" readonly/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Họ và tên</label>
+        <input class="form-control" id="editName" type="text" placeholder="Nguyễn Văn A"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-control" id="editEmail" type="email" placeholder="email@example.com"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalEditProfile')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveProfile()" id="btnSaveProfile">💾 Lưu thay đổi</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
 const API_URL = 'https://script.google.com/macros/s/AKfycbzyfSdGC1HTLaZWeU5HeuyEuCWfFdgcCA9sOWeliJ42W4oH5ishONdenSnc0ZSSyyg5/exec'; // << THAY THẾ URL CỦA BẠN
+
+// ── SERVICE EXTENDED DATA (từ menu dịch vụ Willowy Spa) ───────
+const SERVICE_EXTENDED_DATA = {
+  categories: [
+    {
+      id: 'dau_mun', icon: '🌿', label: 'Chăm sóc dầu mụn',
+      services: [
+        {
+          id: 'dau_mun_01', icon: '🌿', nameVi: 'Điều trị dầu mụn cơ bản (SO1)', nameEn: 'Basic Acne & Oil Treatment',
+          duration: 60, price: 250000,
+          description: 'Liệu trình chăm sóc da chuyên sâu, làm sạch và cân bằng bã nhờn, thu nhỏ lỗ chân lông, ngăn ngừa mụn tái phát.',
+          steps: ['Tẩy trang & làm sạch da bằng sữa rửa mặt chuyên biệt','Xông hơi làm mềm da, mở lỗ chân lông','Lấy nhân mụn, hút nhờn bằng thiết bị chuyên dụng','Đắp mặt nạ kiểm soát dầu & kháng khuẩn','Thoa kem dưỡng phục hồi & chống nắng'],
+          combos: [{name:'3 buổi', price:'680.000 ₫'},{name:'5 buổi', price:'1.100.000 ₫'},{name:'10 buổi', price:'2.100.000 ₫'}]
+        },
+        {
+          id: 'dau_mun_02', icon: '✨', nameVi: 'Điều trị dầu mụn chuyên sâu (SO2)', nameEn: 'Advanced Acne & Oil Treatment',
+          duration: 90, price: 380000,
+          description: 'Phác đồ điều trị chuyên sâu kết hợp công nghệ hiện đại, hiệu quả tối ưu với da nhiều dầu, mụn viêm và mụn cám.',
+          steps: ['Tẩy trang kép (dầu + sữa)','Tẩy da chết bằng enzyme','Xông hơi ôzôn kháng khuẩn','Lấy nhân mụn & hút ẩm sâu','Thẩm thấu serum cân bằng nhờn bằng máy','Đắp mặt nạ clay detox','Thoa kem phục hồi & SPF'],
+          combos: [{name:'3 buổi', price:'1.050.000 ₫'},{name:'5 buổi', price:'1.700.000 ₫'},{name:'10 buổi', price:'3.200.000 ₫'}]
+        },
+        {
+          id: 'dau_mun_03', icon: '🧬', nameVi: 'Peel da trị mụn (SO3)', nameEn: 'Chemical Peel for Acne',
+          duration: 45, price: 500000,
+          description: 'Sử dụng các hoạt chất sinh học loại bỏ tế bào chết, đẩy nhanh tái tạo da và gom cồi mụn nhanh chóng.',
+          steps: ['Làm sạch da chuẩn y khoa','Sát khuẩn bề mặt','Thoa hoạt chất Peel chuyên dụng','Làm dịu bằng điện di lạnh','Đắp mặt nạ phục hồi'],
+          combos: [{name:'3 buổi', price:'1.350.000 ₫'},{name:'5 buổi', price:'2.200.000 ₫'}]
+        },
+        {
+          id: 'dau_mun_04', icon: '❄️', nameVi: 'Điện di lạnh phục hồi (SO4)', nameEn: 'Cold Electrophoresis Recovery',
+          duration: 30, price: 200000,
+          description: 'Làm dịu da tức thì sau nặn mụn, thu nhỏ lỗ chân lông và đẩy sâu tinh chất phục hồi.',
+          steps: ['Làm sạch nhẹ nhàng','Thoa serum phục hồi B5/HA','Điện di lạnh 15-20 phút','Khóa ẩm'],
+          combos: [{name:'5 buổi', price:'900.000 ₫'},{name:'10 buổi', price:'1.700.000 ₫'}]
+        }
+      ]
+    },
+    {
+      id: 'kho_xin', icon: '💧', label: 'Chăm sóc da khô & xỉn màu',
+      services: [
+        {
+          id: 'kho_xin_01', icon: '💧', nameVi: 'Phục hồi da khô căng (SD1)', nameEn: 'Dry Skin Restoration',
+          duration: 60, price: 280000,
+          description: 'Cung cấp độ ẩm tối ưu, phục hồi hàng rào bảo vệ da, mang lại vẻ mềm mại và tươi sáng.',
+          steps: ['Làm sạch dịu nhẹ','Tẩy da chết AHA/BHA','Xông hơi phun sương khoáng','Đắp mặt nạ ceramide','Thẩm thấu HA serum','Thoa kem dưỡng ẩm'],
+          combos: [{name:'3 buổi', price:'780.000 ₫'},{name:'5 buổi', price:'1.250.000 ₫'}]
+        },
+        {
+          id: 'kho_xin_02', icon: '🌟', nameVi: 'Dưỡng trắng & sáng da (SD2)', nameEn: 'Brightening Treatment',
+          duration: 75, price: 350000,
+          description: 'Liệu trình làm sáng da, mờ thâm nám, đồng đều màu da và tăng cường độ rạng rỡ.',
+          steps: ['Làm sạch & tẩy trang','Tẩy da chết Vitamin C','Thẩm thấu serum trắng sáng','Đắp mặt nạ chuyên sâu','Massage mặt','Dưỡng sáng & SPF'],
+          combos: [{name:'3 buổi', price:'960.000 ₫'},{name:'5 buổi', price:'1.550.000 ₫'},{name:'10 buổi', price:'2.950.000 ₫'}]
+        },
+        {
+          id: 'kho_xin_03', icon: '🍇', nameVi: 'Thải độc tố Oxygen (SD3)', nameEn: 'Oxygen Detox Treatment',
+          duration: 60, price: 400000,
+          description: 'Cung cấp oxy tươi tinh khiết giúp da hít thở, loại bỏ bụi bẩn ô nhiễm và độc tố sâu bên trong.',
+          steps: ['Làm sạch da','Hút mụn & bã nhờn','Phun Oxy tươi áp lực cao','Đắp mặt nạ thải độc','Thoa tinh chất bảo vệ'],
+          combos: [{name:'3 buổi', price:'1.100.000 ₫'}]
+        },
+        {
+          id: 'kho_xin_04', icon: '🫧', nameVi: 'Cấp ẩm đa tầng (SD4)', nameEn: 'Multi-layer Hydration',
+          duration: 75, price: 420000,
+          description: 'Sử dụng công nghệ siêu âm đưa HA đa kích thước vào sâu các tầng da, giúp da căng bóng.',
+          steps: ['Làm sạch sâu','Siêu âm đẩy dưỡng chất HA','Đắp mặt nạ ngủ cấp nước','Massage vai gáy','Khóa ẩm'],
+          combos: [{name:'3 buổi', price:'1.150.000 ₫'},{name:'10 buổi', price:'3.600.000 ₫'}]
+        }
+      ]
+    },
+    {
+      id: 'lao_hoa', icon: '🌸', label: 'Chống lão hóa',
+      services: [
+        {
+          id: 'lao_hoa_01', icon: '🌸', nameVi: 'Trẻ hóa da cơ bản (SA1)', nameEn: 'Anti-Aging Basic',
+          duration: 75, price: 350000,
+          description: 'Kích thích tái tạo collagen, giảm nếp nhăn và cải thiện đàn hồi da hiệu quả.',
+          steps: ['Làm sạch & tẩy trang','Tẩy da chết nhẹ','Massage nâng cơ','Đắp mặt nạ collagen','Thẩm thấu peptide serum','Dưỡng chống lão hóa'],
+          combos: [{name:'3 buổi', price:'980.000 ₫'},{name:'5 buổi', price:'1.580.000 ₫'}]
+        },
+        {
+          id: 'lao_hoa_02', icon: '💎', nameVi: 'Trẻ hóa da chuyên sâu (SA2)', nameEn: 'Anti-Aging Advanced',
+          duration: 90, price: 450000,
+          description: 'Phác đồ tổng hợp kết hợp công nghệ RF và siêu âm nâng cơ mặt, xóa mờ nếp nhăn.',
+          steps: ['Làm sạch kép','RF nâng cơ (máy)','Siêu âm đẩy dưỡng chất','Đắp mặt nạ peptide gold','Massage lymphatic','Kem dưỡng cao cấp'],
+          combos: [{name:'3 buổi', price:'1.280.000 ₫'},{name:'10 buổi', price:'3.900.000 ₫'}]
+        },
+        {
+          id: 'lao_hoa_03', icon: '⚜️', nameVi: 'Mặt nạ vàng 24K Luxury (SA4)', nameEn: '24K Gold Luxury Mask',
+          duration: 60, price: 480000,
+          description: 'Liệu pháp sang trọng giúp làm sáng da, chống oxy hóa cực mạnh và rạng rỡ.',
+          steps: ['Làm sạch da','Thẩm thấu tinh thể vàng','Đắp mặt nạ lá vàng 24K','Massage đầu thư giãn','Khóa dưỡng chất'],
+          combos: [{name:'5 buổi', price:'2.200.000 ₫'}]
+        }
+      ]
+    },
+    {
+      id: 'massage_mat', icon: '💆', label: 'Massage mặt',
+      services: [
+        {
+          id: 'mas_mat_01', icon: '💆', nameVi: 'Massage thư giãn mặt', nameEn: 'Facial Relaxation Massage',
+          duration: 45, price: 200000,
+          description: 'Massage cơ mặt theo kỹ thuật Nhật Bản, giảm stress, tăng tuần hoàn máu và giúp da hồng hào.',
+          steps: ['Làm sạch nhẹ','Thoa dầu massage chuyên dụng','Massage 9 điểm huyệt đạo','Ấn huyệt khai thông','Đắp khăn ấm & thư giãn'],
+          combos: [{name:'3 buổi', price:'560.000 ₫'},{name:'5 buổi', price:'900.000 ₫'}]
+        },
+        {
+          id: 'mas_mat_02', icon: '🌺', nameVi: 'Massage nâng cơ mặt', nameEn: 'Lifting Facial Massage',
+          duration: 60, price: 280000,
+          description: 'Kỹ thuật massage nâng cơ chuyên sâu, làm săn chắc da, giảm chảy xệ và định hình khuôn mặt.',
+          steps: ['Làm sạch & dưỡng ẩm lót','Thoa serum nâng cơ','Massage bạch huyết (lymph drainage)','Kỹ thuật nâng cơ Kobido','Đắp mặt nạ nâng cơ collagen','Thoa kem dưỡng hoàn thiện'],
+          combos: [{name:'3 buổi', price:'780.000 ₫'},{name:'5 buổi', price:'1.250.000 ₫'}]
+        }
+      ]
+    },
+    {
+      id: 'massage_body', icon: '💪', label: 'Massage cơ thể',
+      services: [
+        {
+          id: 'mas_body_01', icon: '💪', nameVi: 'Massage thư giãn (B1)', nameEn: 'Body Relaxation',
+          duration: 60, price: 300000,
+          description: 'Massage toàn thân phong cách Thụy Điển, giải tỏa căng thẳng và phục hồi năng lượng.',
+          steps: ['Ngâm chân thảo dược','Massage lưng & vai gáy','Massage tay chân','Thư giãn tinh dầu'],
+          combos: [{name:'3 buổi', price:'840.000 ₫'},{name:'10 buổi', price:'2.600.000 ₫'}]
+        },
+        {
+          id: 'mas_body_02', icon: '🏮', nameVi: 'Massage đá nóng (B2)', nameEn: 'Hot Stone Massage',
+          duration: 75, price: 380000,
+          description: 'Kết hợp đá bazan nhiệt và massage chuyên sâu, tan biến mệt mỏi tức thì.',
+          steps: ['Ủ ấm toàn thân','Massage đá nóng vai gáy','Massage tay chân với đá','Đặt đá dọc cột sống','Thư giãn'],
+          combos: [{name:'3 buổi', price:'1.060.000 ₫'},{name:'5 buổi', price:'1.700.000 ₫'}]
+        },
+        {
+          id: 'body_scrub_01', icon: '☕', nameVi: 'Tẩy da chết Cafe & Sữa (BS)', nameEn: 'Coffee & Milk Scrub',
+          duration: 45, price: 250000,
+          description: 'Loại bỏ tế bào chết, làm mịn da và sáng tông tự nhiên.',
+          steps: ['Làm ướt cơ thể','Massage hạt cafe & sữa','Tẩy kỹ vùng da sần','Xả sạch','Dưỡng thể'],
+          combos: [{name:'3 buổi', price:'680.000 ₫'}]
+        },
+        {
+          id: 'body_white_01', icon: '🥛', nameVi: 'Ủ trắng men sữa (BW)', nameEn: 'Milk Whitening',
+          duration: 60, price: 450000,
+          description: 'Liệu pháp làm trắng an toàn từ men sữa tự nhiên, giúp da hồng hào bật tông.',
+          steps: ['Tẩy da chết nhẹ','Thoa men sữa ủ trắng','Quấn giữ nhiệt','Massage đầu vai gáy','Dưỡng khóa màu'],
+          combos: [{name:'5 buổi', price:'2.000.000 ₫'}]
+        }
+      ]
+    },
+    {
+      id: 'goi_dau', icon: '🪷', label: 'Gội đầu & chăm sóc tóc',
+      services: [
+        {
+          id: 'goi_dau_01', icon: '🪷', nameVi: 'Gội đầu thư giãn (H1)', nameEn: 'Relaxing Wash',
+          duration: 45, price: 150000,
+          description: 'Làm sạch sâu kết hợp massage da đầu giảm stress.',
+          steps: ['Chải tóc','Gội thảo dược','Massage da đầu','Xả dưỡng','Sấy khô'],
+          combos: [{name:'5 buổi', price:'700.000 ₫'},{name:'10 buổi', price:'1.300.000 ₫'}]
+        },
+        {
+          id: 'goi_dau_03', icon: '✨', nameVi: 'Gội + Massage vai gáy (H3)', nameEn: 'Wash & Shoulder Massage',
+          duration: 60, price: 200000,
+          description: 'Combo yêu thích: Gội đầu thư giãn và massage vai gáy chuyên sâu.',
+          steps: ['Gội sạch','Massage vai gáy 15p','Massage da đầu','Xả dưỡng','Sấy tạo kiểu'],
+          combos: [{name:'5 buổi', price:'940.000 ₫'},{name:'10 buổi', price:'1.800.000 ₫'}]
+        },
+        {
+          id: 'goi_dau_04', icon: '👑', nameVi: 'Gội đầu dưỡng sinh Premium (H4)', nameEn: 'Premium Wellness Wash',
+          duration: 90, price: 350000,
+          description: 'Kết hợp gội đầu thảo dược, đắp mặt nạ và massage tay chân vai gáy toàn diện.',
+          steps: ['Ngâm chân','Rửa mặt & đắp mặt nạ','Gội thảo dược 2 lần','Massage chuyên sâu vai gáy','Massage tay & chân','Xông khói bồ kết','Sấy tạo kiểu'],
+          combos: [{name:'3 buổi', price:'950.000 ₫'}]
+        }
+      ]
+    }
+  ]
+};
 
 // ── I18N ──────────────────────────────────────────────────────
 const I18N = {
@@ -841,23 +1108,127 @@ async function renderHomePage(){
   document.getElementById('heroDesc').textContent=t('heroDesc');
   document.getElementById('svcTitle').textContent=t('svcTitle');
   const grid=document.getElementById('homeServices');
-  const icons={'SVC_001':'🪷','SVC_002':'💆','SVC_003':'💪','SVC_004':'✨','SVC_005':'🌿'};
-  if(!state.services.length){
-    grid.innerHTML=Array(4).fill(0).map(()=>`<div class="svc-card" style="pointer-events:none"><div class="svc-icon skel" style="background:var(--stone)"></div><div class="skel" style="height:14px;width:70%;margin-bottom:8px"></div><div class="skel" style="height:11px;width:40%"></div></div>`).join('');
-    const res=await api('getServices');
-    if(res.success) state.services=res.services;
-  }
-  if(!state.services.length){grid.innerHTML=`<p style="color:var(--sub);grid-column:1/-1">Không thể tải dịch vụ.</p>`;return;}
-  grid.innerHTML=state.services.slice(0,4).map(s=>`
-    <div class="svc-card" onclick="quickBook('${s.serviceId}')">
-      <div class="svc-icon">${icons[s.serviceId]||'🌸'}</div>
-      <div class="svc-name">${state.lang==='vi'?s.nameVi:s.nameEn}</div>
-      <div class="svc-dur">${s.duration} ${t('min')}</div>
-      <div class="svc-price">${fmt(s.price)}</div>
+
+  // Hiển thị skeleton loading
+  grid.innerHTML=Array(4).fill(0).map(()=>`<div class="svc-card" style="pointer-events:none"><div class="svc-icon skel" style="background:var(--stone)"></div><div class="skel" style="height:14px;width:70%;margin-bottom:8px"></div><div class="skel" style="height:11px;width:40%"></div></div>`).join('');
+
+  // Thay grid thành section wrapper (bỏ grid, dùng category sections)
+  grid.style.display = 'block';
+
+  // Render từ SERVICE_EXTENDED_DATA (không cần API)
+  grid.innerHTML = SERVICE_EXTENDED_DATA.categories.map(cat => `
+    <div class="category-section">
+      <div class="category-label">${cat.icon} ${cat.label}</div>
+      <div class="services-grid">
+        ${cat.services.map(svc => `
+          <div class="svc-card" onclick="showServiceDetail('${svc.id}')">
+            <div class="svc-icon">${svc.icon}</div>
+            <div class="svc-name">${state.lang==='vi'?svc.nameVi:svc.nameEn}</div>
+            <div class="svc-dur">${svc.duration} ${t('min')}</div>
+            <div class="svc-price">${fmt(svc.price)}</div>
+          </div>`).join('')}
+      </div>
     </div>`).join('');
 }
 
-function quickBook(svcId){if(!state.customer){showPage('auth');return;}state.booking.serviceId=svcId;showPage('booking');goStep(2);}
+function showServiceDetail(svcId) {
+  // Tìm dịch vụ trong extended data
+  let svc = null;
+  for (const cat of SERVICE_EXTENDED_DATA.categories) {
+    svc = cat.services.find(s => s.id === svcId);
+    if (svc) break;
+  }
+  if (!svc) return;
+
+  // Điền vào modal
+  document.getElementById('svcDetailIcon').textContent = svc.icon;
+  document.getElementById('svcDetailName').textContent = state.lang==='vi' ? svc.nameVi : svc.nameEn;
+  document.getElementById('svcDetailDur').textContent = `⏱ ${svc.duration} phút`;
+  document.getElementById('svcDetailPrice').textContent = `${fmt(svc.price)}`;
+  document.getElementById('svcDetailDesc').textContent = svc.description || '';
+
+  // Các bước
+  const stepsWrap = document.getElementById('svcDetailStepsWrap');
+  const stepsList = document.getElementById('svcDetailSteps');
+  if (svc.steps && svc.steps.length) {
+    stepsWrap.style.display = '';
+    stepsList.innerHTML = svc.steps.map((step, i) =>
+      `<li><span class="step-bullet">${i+1}</span><span>${step}</span></li>`
+    ).join('');
+  } else {
+    stepsWrap.style.display = 'none';
+  }
+
+  // Combos
+  const combosWrap = document.getElementById('svcDetailCombosWrap');
+  const combosEl = document.getElementById('svcDetailCombos');
+  if (svc.combos && svc.combos.length) {
+    combosWrap.style.display = '';
+    combosEl.innerHTML = svc.combos.map(c =>
+      `<div class="combo-row"><span class="combo-name">${c.name}</span><span class="combo-price">${c.price}</span></div>`
+    ).join('');
+  } else {
+    combosWrap.style.display = 'none';
+  }
+
+  // Nút đặt lịch (tìm serviceId tương ứng từ state.services nếu có, fallback quickBook bằng extended id)
+  const btn = document.getElementById('btnBookFromDetail');
+  btn.onclick = () => { closeModal('modalServiceDetail'); quickBook(svc.id); };
+
+  document.getElementById('modalServiceDetail').classList.add('show');
+}
+
+function quickBook(svcId){
+  if(!state.customer){showPage('auth');return;}
+  // Nếu serviceId từ backend khớp, dùng luôn; nếu không, mở trang booking bước 1
+  const backendSvc = state.services.find(s => s.serviceId === svcId);
+  if(backendSvc){
+    state.booking.serviceId = svcId;
+    showPage('booking');
+    goStep(2);
+  } else {
+    // Không khớp ID cứng => mở booking bình thường để khách chọn
+    showPage('booking');
+  }
+}
+
+// ── SERVICE HISTORY: Navigate to past bookings ─────────────────
+function navigateToPastBookings(){
+  showPage('bookings');
+  // Đợi bookings load rồi switch sang tab "Đã qua"
+  setTimeout(() => {
+    switchBookingTab('past');
+  }, 100);
+}
+
+// ── PROFILE EDIT ──────────────────────────────────────────────
+function openEditProfile(){
+  if(!state.customer) return;
+  document.getElementById('editPhone').value = state.customer.phone || '';
+  document.getElementById('editName').value = state.customer.name || '';
+  document.getElementById('editEmail').value = state.customer.email || '';
+  document.getElementById('modalEditProfile').classList.add('show');
+}
+
+async function saveProfile(){
+  const name = document.getElementById('editName').value.trim();
+  const email = document.getElementById('editEmail').value.trim();
+  if(!name){ showToast(t('errName'),'error'); return; }
+  const btn = document.getElementById('btnSaveProfile');
+  btn.disabled = true; btn.textContent = '⏳ Đang lưu...';
+  const res = await api('updateProfile', { customerId: state.customer.customerId, name, email });
+  btn.disabled = false; btn.textContent = '💾 Lưu thay đổi';
+  if(res && res.success){
+    state.customer = res.customer;
+    localStorage.setItem('willowyCustomer', JSON.stringify(state.customer));
+    closeModal('modalEditProfile');
+    showToast('Cập nhật thông tin thành công! ✓','success');
+    renderProfile();
+  } else {
+    showToast('Cập nhật thất bại: ' + (res && res.error || 'unknown'),'error');
+  }
+}
+
 
 // ── AUTH ──────────────────────────────────────────────────────
 function renderAuthPage(){
@@ -1254,9 +1625,9 @@ async function renderProfile(){
   const c=state.customer;
   const initials=c.name.split(' ').map(w=>w[0]).join('').slice(-2).toUpperCase();
   const pc=document.getElementById('profileCard');if(!pc)return;
-  pc.innerHTML=`<div class="profile-header"><div class="avatar">${initials}</div><div><h3 style="font-size:18px;font-weight:700;color:var(--deep)">${c.name}</h3><p style="color:var(--sub);font-size:12px">${c.phone}${c.email?' · '+c.email:''}</p></div></div>
+  pc.innerHTML=`<div class="profile-header"><div class="avatar">${initials}</div><div style="flex:1"><h3 style="font-size:18px;font-weight:700;color:var(--deep)">${c.name}</h3><p style="color:var(--sub);font-size:12px">${c.phone}${c.email?' · '+c.email:''}</p></div><button class="btn btn-outline btn-sm" onclick="openEditProfile()" style="flex-shrink:0">✏️ Sửa</button></div>
     <div class="stat-chips">
-      <div class="stat-chip"><div class="val">${c.totalVisits||0}</div><div class="lbl">${t('totalVisit')}</div></div>
+      <div class="stat-chip clickable" onclick="navigateToPastBookings()" title="Xem lịch sử dịch vụ"><div class="val">${c.totalVisits||0}</div><div class="lbl">${t('totalVisit')} 📋</div></div>
       <div class="stat-chip"><div class="val">${c.referralCount||0}</div><div class="lbl">${t('referralCount')}</div></div>
     </div>`;
   showLoading(true);
@@ -1443,6 +1814,12 @@ async function loadAdminTechnicians(){
   </tr>`).join('');
 }
 
+function openTechModal(techId){
+  const modal=document.getElementById('modalTech');
+  if (!state.admin.services.length) {
+    api('adminGetServices',{adminToken:state.admin.token}).then(r=>{if(r.success)state.admin.services=r.services; openTechModal(techId);});
+    return;
+  }
   // Populate specialties checklist
   const specList = document.getElementById('techSpecialtiesList');
   if (specList) {

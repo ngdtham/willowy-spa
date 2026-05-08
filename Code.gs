@@ -619,3 +619,57 @@ function checkReminders() {
     }
   }
 }
+
+// ============================================================
+// CÔNG CỤ SETUP DỮ LIỆU (Chạy 1 lần để đồng bộ Sheet)
+// ============================================================
+
+/**
+ * Hàm này sẽ xóa toàn bộ dữ liệu trong tab "Services" 
+ * và ghi lại 22 dịch vụ mới khớp hoàn toàn với giao diện Web.
+ */
+function setupServicesData() {
+  const sheet = getSheet(CONFIG.SHEETS.SERVICES);
+  const headers = getHeaders(sheet);
+  
+  // Xóa dữ liệu cũ (từ dòng 2 trở đi)
+  const lr = sheet.getLastRow();
+  if (lr > 1) {
+    sheet.getRange(2, 1, lr - 1, sheet.getLastColumn()).clearContent();
+  }
+  
+  const services = [
+    { serviceId: 'dau_mun_01', nameVi: 'Điều trị dầu mụn cơ bản (SO1)', nameEn: 'Basic Acne & Oil Treatment', duration: 60, price: 250000, isActive: true },
+    { serviceId: 'dau_mun_02', nameVi: 'Điều trị dầu mụn chuyên sâu (SO2)', nameEn: 'Advanced Acne & Oil Treatment', duration: 90, price: 380000, isActive: true },
+    { serviceId: 'dau_mun_03', nameVi: 'Peel da trị mụn (SO3)', nameEn: 'Chemical Peel for Acne', duration: 45, price: 500000, isActive: true },
+    { serviceId: 'dau_mun_04', nameVi: 'Điện di lạnh phục hồi (SO4)', nameEn: 'Cold Electrophoresis Recovery', duration: 30, price: 200000, isActive: true },
+    
+    { serviceId: 'kho_xin_01', nameVi: 'Phục hồi da khô căng (SD1)', nameEn: 'Dry Skin Restoration', duration: 60, price: 280000, isActive: true },
+    { serviceId: 'kho_xin_02', nameVi: 'Dưỡng trắng & sáng da (SD2)', nameEn: 'Brightening Treatment', duration: 75, price: 350000, isActive: true },
+    { serviceId: 'kho_xin_03', nameVi: 'Thải độc tố Oxygen (SD3)', nameEn: 'Oxygen Detox Treatment', duration: 60, price: 400000, isActive: true },
+    { serviceId: 'kho_xin_04', nameVi: 'Cấp ẩm đa tầng (SD4)', nameEn: 'Multi-layer Hydration', duration: 75, price: 420000, isActive: true },
+    
+    { serviceId: 'lao_hoa_01', nameVi: 'Trẻ hóa da cơ bản (SA1)', nameEn: 'Anti-Aging Basic', duration: 75, price: 350000, isActive: true },
+    { serviceId: 'lao_hoa_02', nameVi: 'Trẻ hóa da chuyên sâu (SA2)', nameEn: 'Anti-Aging Advanced', duration: 90, price: 450000, isActive: true },
+    { serviceId: 'lao_hoa_03', nameVi: 'Mặt nạ vàng 24K Luxury (SA4)', nameEn: '24K Gold Luxury Mask', duration: 60, price: 480000, isActive: true },
+    
+    { serviceId: 'mas_mat_01', nameVi: 'Massage thư giãn mặt', nameEn: 'Facial Relaxation Massage', duration: 45, price: 200000, isActive: true },
+    { serviceId: 'mas_mat_02', nameVi: 'Massage nâng cơ mặt', nameEn: 'Lifting Facial Massage', duration: 60, price: 280000, isActive: true },
+    
+    { serviceId: 'mas_body_01', nameVi: 'Massage thư giãn (B1)', nameEn: 'Body Relaxation', duration: 60, price: 300000, isActive: true },
+    { serviceId: 'mas_body_02', nameVi: 'Massage đá nóng (B2)', nameEn: 'Hot Stone Massage', duration: 75, price: 380000, isActive: true },
+    { serviceId: 'body_scrub_01', nameVi: 'Tẩy da chết Cafe & Sữa (BS)', nameEn: 'Coffee & Milk Scrub', duration: 45, price: 250000, isActive: true },
+    { serviceId: 'body_white_01', nameVi: 'Ủ trắng men sữa (BW)', nameEn: 'Milk Whitening', duration: 60, price: 450000, isActive: true },
+    
+    { serviceId: 'goi_dau_01', nameVi: 'Gội đầu thư giãn (H1)', nameEn: 'Relaxing Wash', duration: 45, price: 150000, isActive: true },
+    { serviceId: 'goi_dau_03', nameVi: 'Gội + Massage vai gáy (H3)', nameEn: 'Wash & Shoulder Massage', duration: 60, price: 200000, isActive: true },
+    { serviceId: 'goi_dau_04', nameVi: 'Gội đầu dưỡng sinh Premium (H4)', nameEn: 'Premium Wellness Wash', duration: 90, price: 350000, isActive: true }
+  ];
+
+  // Ghi dữ liệu vào sheet
+  services.forEach(svc => {
+    appendRow(sheet, headers, svc);
+  });
+
+  Logger.log('Đã cập nhật thành công 22 dịch vụ vào Google Sheet!');
+}
