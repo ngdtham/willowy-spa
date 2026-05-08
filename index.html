@@ -1000,6 +1000,13 @@ const t = k => I18N[state.lang][k] || k;
 const fmt = n => new Intl.NumberFormat('vi-VN').format(n) + ' ₫';
 const fmtDate = d => { if(!d)return''; const dt=new Date(d+'T00:00:00'); return state.lang==='vi'?dt.toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'}):dt.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); };
 const fmtDateShort = d => { if(!d)return{day:'?',mon:'?'}; const dt=new Date(d+'T00:00:00'); return{day:dt.getDate(),mon:dt.toLocaleDateString(state.lang==='vi'?'vi-VN':'en-US',{month:'short'})}; };
+const findExtendedService = id => {
+  for (const cat of SERVICE_EXTENDED_DATA.categories) {
+    const s = cat.services.find(x => x.id === id);
+    if (s) return s;
+  }
+  return null;
+};
 
 let _loadingTimer=null;
 function showLoading(show,msg){
@@ -1557,7 +1564,12 @@ function selectSlot(start,end,el){
 }
 
 function renderSummary(){
-  const svc=state.services.find(s=>s.serviceId===state.booking.serviceId)||{};
+  let svc=state.services.find(s=>s.serviceId===state.booking.serviceId);
+  if(!svc) {
+    const extSvc = findExtendedService(state.booking.serviceId);
+    if(extSvc) svc = extSvc;
+    else svc = {};
+  }
   const tech=state.technicians.find(t=>t.technicianId===state.booking.technicianId)||{};
   const el=document.getElementById('bookingSummary');if(!el)return;
   el.innerHTML=`

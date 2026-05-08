@@ -339,6 +339,7 @@ function handleCreateBooking(payload) {
       successfulBookings.push(booking);
       existingBookings.push(booking);
       
+      const existingSch = existingSchedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === d);
       if (!existingSch) {
         const newSch = { scheduleId: generateId('SCH'), technicianId: technicianId, date: d, startTime: '08:00', endTime: '23:00', isActive: true };
         newSchedulesToCreate.push(newSch);
