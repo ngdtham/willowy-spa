@@ -819,16 +819,49 @@ function sendTelegramReply(chatId, text) {
 }
 
 // ── TELEGRAM BOT COMMANDS ────────────────────────────────────
-function setTelegramWebhook() {
-  const webhookUrl = ScriptApp.getService().getUrl();
-  const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM.TOKEN}/setWebhook`;
-  const resp = UrlFetchApp.fetch(url, {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify({ url: webhookUrl }),
-    muteHttpExceptions: true
+// ── TELEGRAM POLLING (thay thế webhook, tránh lỗi 302 của GAS) ──
+// Bước 1: Chạy removeTelegramWebhook() để xóa webhook cũ
+// Bước 2: Chạy setupTelegramPolling() để tạo trigger tự động mỗi phút
+function removeTelegramWebhook() {
+  const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM.TOKEN}/deleteWebhook`;
+  const resp = UrlFetchApp.fetch(url, { method: 'post', muteHttpExceptions: true });
+  Logger.log('deleteWebhook: ' + resp.getContentText());
+}
+
+function setupTelegramPolling() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'pollTelegramUpdates')
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('pollTelegramUpdates').timeBased().everyMinutes(1).create();
+  Logger.log('✅ Trigger polling đã tạo — chạy mỗi 1 phút');
+}
+
+function removeTelegramPolling() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'pollTelegramUpdates')
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  Logger.log('Trigger polling đã xóa');
+}
+
+function pollTelegramUpdates() {
+  const props = PropertiesService.getScriptProperties();
+  const lastId = parseInt(props.getProperty('TG_LAST_UPDATE_ID') || '0');
+
+  const resp = UrlFetchApp.fetch(
+    `https://api.telegram.org/bot${CONFIG.TELEGRAM.TOKEN}/getUpdates?offset=${lastId + 1}&limit=20&timeout=0&allowed_updates=["message"]`,
+    { muteHttpExceptions: true }
+  );
+
+  const result = JSON.parse(resp.getContentText());
+  if (!result.ok || !result.result.length) return;
+
+  let maxId = lastId;
+  result.result.forEach(update => {
+    if (update.update_id > maxId) maxId = update.update_id;
+    try { handleTelegramUpdate(update); } catch(e) { Logger.log('handleUpdate error: ' + e.message); }
   });
-  Logger.log('setWebhook result: ' + resp.getContentText());
+
+  props.setProperty('TG_LAST_UPDATE_ID', String(maxId));
 }
 
 function handleTelegramUpdate(update) {
