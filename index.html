@@ -354,16 +354,33 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
   <!-- PROMOTION SLIDER -->
   <div class="promo-section" style="padding: 20px 20px 0; max-width: 840px; margin: 0 auto; width: 100%;">
     <h3 style="font-size: 16px; font-weight: 700; color: var(--deep); margin-bottom: 12px;">Ưu đãi nổi bật</h3>
-    <div class="promo-slider" style="display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px;">
-      <div class="promo-item" style="scroll-snap-align: start; flex-shrink: 0; width: 85%; max-width: 300px; border-radius: var(--r2); overflow: hidden; box-shadow: var(--sh);">
-        <img src="Promotion/z7806637959293_b72ad9dfd1179181e0d82981e4dd0b2d.jpg" style="width: 100%; height: auto; display: block;" alt="Promo 1">
+    <div class="promo-wrapper" style="position: relative;">
+      <button class="promo-btn prev-btn" onclick="scrollPromo(-1)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.8); color: var(--deep); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: bold;">❮</button>
+      
+      <div class="promo-slider" id="promoSlider" style="display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px; margin: 0 -20px; padding: 0 20px; scroll-behavior: smooth;">
+        <!-- C (clone) -->
+        <div class="promo-item clone-last" style="scroll-snap-align: center; flex-shrink: 0; width: 100%; max-width: 400px; border-radius: var(--r2); overflow: hidden; box-shadow: var(--sh); cursor: pointer; position: relative;" onclick="openPromoModal(this.querySelector('img').src)">
+          <img src="Promotion/z7806638051378_37fa0b4c314b962b78e4d437d5486237.jpg" style="width: 100%; height: auto; display: block; object-fit: cover;" alt="Promo 3">
+        </div>
+        <!-- A -->
+        <div class="promo-item" style="scroll-snap-align: center; flex-shrink: 0; width: 100%; max-width: 400px; border-radius: var(--r2); overflow: hidden; box-shadow: var(--sh); cursor: pointer; position: relative;" onclick="openPromoModal(this.querySelector('img').src)">
+          <img src="Promotion/z7806637959293_b72ad9dfd1179181e0d82981e4dd0b2d.jpg" style="width: 100%; height: auto; display: block; object-fit: cover;" alt="Promo 1">
+        </div>
+        <!-- B -->
+        <div class="promo-item" style="scroll-snap-align: center; flex-shrink: 0; width: 100%; max-width: 400px; border-radius: var(--r2); overflow: hidden; box-shadow: var(--sh); cursor: pointer; position: relative;" onclick="openPromoModal(this.querySelector('img').src)">
+          <img src="Promotion/z7806637975849_45ee24b0cd3b207dc8d982314b67b6f1.jpg" style="width: 100%; height: auto; display: block; object-fit: cover;" alt="Promo 2">
+        </div>
+        <!-- C -->
+        <div class="promo-item" style="scroll-snap-align: center; flex-shrink: 0; width: 100%; max-width: 400px; border-radius: var(--r2); overflow: hidden; box-shadow: var(--sh); cursor: pointer; position: relative;" onclick="openPromoModal(this.querySelector('img').src)">
+          <img src="Promotion/z7806638051378_37fa0b4c314b962b78e4d437d5486237.jpg" style="width: 100%; height: auto; display: block; object-fit: cover;" alt="Promo 3">
+        </div>
+        <!-- A (clone) -->
+        <div class="promo-item clone-first" style="scroll-snap-align: center; flex-shrink: 0; width: 100%; max-width: 400px; border-radius: var(--r2); overflow: hidden; box-shadow: var(--sh); cursor: pointer; position: relative;" onclick="openPromoModal(this.querySelector('img').src)">
+          <img src="Promotion/z7806637959293_b72ad9dfd1179181e0d82981e4dd0b2d.jpg" style="width: 100%; height: auto; display: block; object-fit: cover;" alt="Promo 1">
+        </div>
       </div>
-      <div class="promo-item" style="scroll-snap-align: start; flex-shrink: 0; width: 85%; max-width: 300px; border-radius: var(--r2); overflow: hidden; box-shadow: var(--sh);">
-        <img src="Promotion/z7806637975849_45ee24b0cd3b207dc8d982314b67b6f1.jpg" style="width: 100%; height: auto; display: block;" alt="Promo 2">
-      </div>
-      <div class="promo-item" style="scroll-snap-align: start; flex-shrink: 0; width: 85%; max-width: 300px; border-radius: var(--r2); overflow: hidden; box-shadow: var(--sh);">
-        <img src="Promotion/z7806638051378_37fa0b4c314b962b78e4d437d5486237.jpg" style="width: 100%; height: auto; display: block;" alt="Promo 3">
-      </div>
+      
+      <button class="promo-btn next-btn" onclick="scrollPromo(1)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(255,255,255,0.8); color: var(--deep); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: bold;">❯</button>
     </div>
   </div>
 
@@ -609,6 +626,14 @@ select.form-control{cursor:pointer;appearance:none;background-image:url("data:im
 </nav>
 
 <!-- MODALS -->
+<!-- MODAL: PROMO PREVIEW -->
+<div class="modal-bg" id="modalPromoPreview" style="background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);">
+  <div style="position: relative; max-width: 90vw; max-height: 90vh;">
+    <button onclick="closePromoModal()" style="position: absolute; top: -40px; right: 0; background: none; border: none; color: white; font-size: 30px; cursor: pointer;">&times;</button>
+    <img id="promoPreviewImg" src="" style="max-width: 100%; max-height: 90vh; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+  </div>
+</div>
+
 <div class="modal-bg" id="modalService">
   <div class="modal">
     <h3 id="modalSvcTitle">Dịch vụ</h3>
@@ -2104,6 +2129,60 @@ async function runSetup(){
   if(res.success) showToast(res.message, 'success');
   else showToast(res.error, 'error');
 }
+// PROMO SLIDER JS
+function scrollPromo(dir) {
+  const slider = document.getElementById("promoSlider");
+  if(slider) {
+    slider.scrollBy({ left: dir * (slider.clientWidth + 14), behavior: 'smooth' });
+  }
+}
+function openPromoModal(src) {
+  const modal = document.getElementById('modalPromoPreview');
+  document.getElementById('promoPreviewImg').src = src;
+  modal.classList.add('show');
+}
+function closePromoModal() {
+  document.getElementById('modalPromoPreview').classList.remove('show');
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const slider = document.getElementById("promoSlider");
+  if(slider) {
+    const items = slider.querySelectorAll('.promo-item');
+    if(items.length > 0) {
+      // Wait a bit for layout to compute width
+      setTimeout(() => {
+        slider.style.scrollBehavior = "auto";
+        slider.scrollLeft = items[1].offsetLeft - slider.offsetLeft;
+        slider.style.scrollBehavior = "smooth";
+      }, 100);
+
+      // Debounce for scrollend
+      let isScrolling;
+      slider.addEventListener("scroll", () => {
+        window.clearTimeout(isScrolling);
+        isScrolling = setTimeout(() => {
+          const itemWidth = items[0].offsetWidth + 14; // including gap
+          // if at clone C (start)
+          if (slider.scrollLeft < itemWidth / 2) {
+            slider.style.scrollBehavior = "auto";
+            slider.scrollLeft = items[items.length - 2].offsetLeft - slider.offsetLeft;
+            // force reflow
+            void slider.offsetWidth;
+            slider.style.scrollBehavior = "smooth";
+          }
+          // if at clone A (end)
+          else if (slider.scrollLeft > slider.scrollWidth - slider.clientWidth - itemWidth / 2) {
+            slider.style.scrollBehavior = "auto";
+            slider.scrollLeft = items[1].offsetLeft - slider.offsetLeft;
+            // force reflow
+            void slider.offsetWidth;
+            slider.style.scrollBehavior = "smooth";
+          }
+        }, 150);
+      });
+    }
+  }
+});
 </script>
 </body>
 </html>
