@@ -41,6 +41,7 @@ function doPost(e) {
     const payload = data.payload || {};
     const handlers = {
       'login': handleLogin, 'register': handleRegister, 'updateProfile': handleUpdateProfile,
+      'forgotPassword': handleForgotPassword, 'verifyResetCode': handleVerifyResetCode, 'changePassword': handleChangePassword,
       'getServices': handleGetServices, 'getTechnicians': handleGetTechnicians,
       'getAvailableSlots': handleGetAvailableSlots, 'createBooking': handleCreateBooking,
       'getCustomerBookings': handleGetCustomerBookings, 'cancelBooking': handleCancelBooking,
@@ -165,6 +166,7 @@ function handleRegister(payload) {
   try {
     const { phone, email, name, password, referralCode } = payload;
     if (!phone || !name || !password) return { success: false, error: 'missing_fields' };
+    if (!email) return { success: false, error: 'email_required_for_recovery' };
     const sheet = getSheet(CONFIG.SHEETS.CUSTOMERS);
     const customers = sheetToObjects(sheet);
     const headers = getHeaders(sheet);
@@ -201,6 +203,92 @@ function handleUpdateProfile(payload) {
     updateRow(sheet, idx, headers, customers[idx]);
     return { success: true, customer: sanitizeCustomer(customers[idx]) };
   } catch(e) { return { success: false, error: e.message }; }
+}
+
+// ── PASSWORD RECOVERY ────────────────────────────────────────
+function handleForgotPassword(payload) {
+  const { email } = payload;
+  if (!email) return { success: false, error: 'missing_email' };
+  
+  const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
+  const customer = customers.find(c => String(c.email).trim() === String(email).trim() && isActive(c.isActive));
+  
+  if (!customer) return { success: false, error: 'email_not_found' };
+  
+  const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+  CacheService.getScriptCache().put('RESET_CODE_' + email, code, 900); // 15 minutes
+  
+  try {
+    MailApp.sendEmail(email, "Mã khôi phục mật khẩu - Willowy Spa", "Mã xác nhận khôi phục mật khẩu của bạn là: " + code + "\n\nMã này sẽ hết hạn trong 15 phút.");
+  } catch(e) {
+    return { success: false, error: 'failed_to_send_email: ' + e.message };
+  }
+  
+  return { success: true };
+}
+
+function handleVerifyResetCode(payload) {
+  const { email, code } = payload;
+  if (!email || !code) return { success: false, error: 'missing_fields' };
+  
+  const cachedCode = CacheService.getScriptCache().get('RESET_CODE_' + email);
+  if (!cachedCode || cachedCode !== code) {
+    return { success: false, error: 'invalid_or_expired_code' };
+  }
+  
+  const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
+  const customer = customers.find(c => String(c.email).trim() === String(email).trim() && isActive(c.isActive));
+  
+  if (!customer) return { success: false, error: 'customer_not_found' };
+  
+  const resetToken = generateId('TOKEN');
+  CacheService.getScriptCache().put('RESET_TOKEN_' + customer.customerId, resetToken, 900);
+  CacheService.getScriptCache().remove('RESET_CODE_' + email);
+  
+  const adminToken = CONFIG.ADMIN.USERNAME + ':' + hashPassword(CONFIG.ADMIN.PASSWORD);
+  
+  return { 
+    success: true, 
+    resetToken, 
+    customer: sanitizeCustomer(customer), 
+    isAdmin: isActive(customer.isAdmin), 
+    token: (isActive(customer.isAdmin) ? adminToken : null) 
+  };
+}
+
+function handleChangePassword(payload) {
+  const { customerId, newPassword, oldPassword, resetToken } = payload;
+  if (!customerId || !newPassword) return { success: false, error: 'missing_fields' };
+  
+  const sheet = getSheet(CONFIG.SHEETS.CUSTOMERS);
+  const customers = sheetToObjects(sheet);
+  const headers = getHeaders(sheet);
+  const idx = customers.findIndex(c => c.customerId === customerId);
+  if (idx === -1) return { success: false, error: 'not_found' };
+  
+  const customer = customers[idx];
+  
+  if (resetToken) {
+    const cachedToken = CacheService.getScriptCache().get('RESET_TOKEN_' + customerId);
+    if (!cachedToken || cachedToken !== resetToken) {
+      return { success: false, error: 'invalid_or_expired_token' };
+    }
+  } else if (oldPassword) {
+    if (customer.passwordHash !== hashPassword(oldPassword)) {
+      return { success: false, error: 'wrong_old_password' };
+    }
+  } else {
+    return { success: false, error: 'unauthorized_change' };
+  }
+  
+  customer.passwordHash = hashPassword(newPassword);
+  updateRow(sheet, idx, headers, customer);
+  
+  if (resetToken) {
+    CacheService.getScriptCache().remove('RESET_TOKEN_' + customerId);
+  }
+  
+  return { success: true };
 }
 
 // ── SERVICES ─────────────────────────────────────────────────
