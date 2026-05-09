@@ -3394,7 +3394,8 @@
         document.getElementById('forgotStep1').style.display = 'none';
         document.getElementById('forgotStep2').style.display = 'block';
       } else {
-        showToast(res.error === 'email_not_found' ? 'Email chưa được đăng ký!' : 'Lỗi khi gửi email', 'error');
+        const errorMsg = res.error === 'email_not_found' ? 'Email chưa được đăng ký!' : 'Lỗi: ' + (res.error || 'không rõ');
+        showToast(errorMsg, 'error', 5000);
       }
     }
 
