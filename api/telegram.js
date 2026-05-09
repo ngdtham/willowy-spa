@@ -6,8 +6,6 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  res.status(200).send('OK');
-
   try {
     await fetch(GAS_URL, {
       method: 'POST',
@@ -19,4 +17,6 @@ module.exports = async function handler(req, res) {
   } catch (e) {
     console.error('GAS relay error:', e.message);
   }
+
+  return res.status(200).send('OK');
 };
