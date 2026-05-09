@@ -17,8 +17,8 @@ const CONFIG = {
     PASSWORD: 'adminadmin'
   },
   TELEGRAM: {
-    TOKEN: 'YOUR_TELEGRAM_BOT_TOKEN', // Thay mã Token Bot của bạn vào đây
-    CHAT_ID: 'YOUR_CHAT_ID' // Thay ID Chat của bạn vào đây
+    TOKEN: '8624713800:AAGz_nWjpTKWLqc2-QZ55OU6BQht2K43woM', // Mã Token Bot chuẩn
+    CHAT_ID: '-1003899972621' // ID Nhóm Willowy Team
   },
   SESSION_EXPIRY_MS: 24 * 60 * 60 * 1000 // 24h
 };
@@ -393,7 +393,15 @@ function handleCancelBooking(payload) {
   const idx = bookings.findIndex(b => b.bookingId===bookingId && b.customerId===customerId);
   if (idx===-1) return { success: false, error: 'not_found' };
   if (bookings[idx].status==='cancelled') return { success: false, error: 'already_cancelled' };
-  bookings[idx].status = 'cancelled'; updateRow(sheet, idx, headers, bookings[idx]);
+  bookings[idx].status = 'cancelled'; 
+  updateRow(sheet, idx, headers, bookings[idx]);
+  
+  try {
+    notifyCancelBooking(bookings[idx]);
+  } catch(e) {
+    console.error('Cancellation notification failed', e.message);
+  }
+  
   return { success: true };
 }
 
@@ -526,13 +534,28 @@ function notifyNewBooking(booking) {
   const tech = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).find(t => t.technicianId === booking.technicianId) || {};
   const customer = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS)).find(c => c.customerId === booking.customerId) || {};
   
-  const msg = `🔔 *CÓ LỊCH ĐẶT MỚI!*\n` +
-              `👤 Khách: ${customer.name} (${customer.phone})\n` +
-              `💆 Dịch vụ: ${service.nameVi}\n` +
-              `👩‍⚕️ Kỹ thuật viên: ${tech.nameVi}\n` +
-              `📅 Ngày: ${normalizeDate(booking.bookingDate)}\n` +
-              `⏰ Giờ: ${normalizeTime(booking.startTime)} - ${normalizeTime(booking.endTime)}\n` +
-              `📝 Ghi chú: ${booking.note || 'Không có'}`;
+  const msg = `🔔 *CÓ LỊCH ĐẶT MỚI!*\n\n` +
+              `👤 *Khách:* ${customer.name} (${customer.phone})\n` +
+              `💆 *Dịch vụ:* ${service.nameVi || booking.serviceId}\n` +
+              `👩‍⚕️ *Kỹ thuật viên:* ${tech.nameVi || booking.technicianId}\n` +
+              `📅 *Ngày:* ${normalizeDate(booking.bookingDate)}\n` +
+              `⏰ *Giờ:* ${normalizeTime(booking.startTime)} - ${normalizeTime(booking.endTime)}\n` +
+              `📝 *Ghi chú:* ${booking.note || 'Không có'}`;
+  
+  sendTelegramMessage(msg);
+}
+
+function notifyCancelBooking(booking) {
+  const service = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)).find(s => s.serviceId === booking.serviceId) || {};
+  const tech = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).find(t => t.technicianId === booking.technicianId) || {};
+  const customer = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS)).find(c => c.customerId === booking.customerId) || {};
+  
+  const msg = `❌ *THÔNG BÁO HỦY LỊCH!*\n\n` +
+              `👤 *Khách:* ${customer.name} (${customer.phone})\n` +
+              `💆 *Dịch vụ:* ${service.nameVi || booking.serviceId}\n` +
+              `👩‍⚕️ *Kỹ thuật viên:* ${tech.nameVi || booking.technicianId}\n` +
+              `📅 *Ngày:* ${normalizeDate(booking.bookingDate)}\n` +
+              `⏰ *Giờ:* ${normalizeTime(booking.startTime)} - ${normalizeTime(booking.endTime)}`;
   
   sendTelegramMessage(msg);
 }
