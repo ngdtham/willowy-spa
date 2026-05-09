@@ -755,11 +755,12 @@ function notifyNewBooking(booking) {
   const service = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)).find(s => s.serviceId === booking.serviceId) || {};
   const tech = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).find(t => t.technicianId === booking.technicianId) || {};
   const customer = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS)).find(c => c.customerId === booking.customerId) || {};
+  const technicianName = booking.technicianId === 'SPA_ASSIGN' ? 'Spa sắp xếp' : (tech.nameVi || booking.technicianId);
   
   const msg = `🔔 *CÓ LỊCH ĐẶT MỚI!*\n\n` +
               `👤 *Khách:* ${customer.name} (${customer.phone})\n` +
               `💆 *Dịch vụ:* ${service.nameVi || booking.serviceId}\n` +
-              `👩‍⚕️ *Kỹ thuật viên:* ${tech.nameVi || booking.technicianId}\n` +
+              `👩‍⚕️ *Kỹ thuật viên:* ${technicianName}\n` +
               `📅 *Ngày:* ${normalizeDate(booking.bookingDate)}\n` +
               `⏰ *Giờ:* ${normalizeTime(booking.startTime)} - ${normalizeTime(booking.endTime)}\n` +
               `📝 *Ghi chú:* ${booking.note || 'Không có'}`;
@@ -771,11 +772,12 @@ function notifyCancelBooking(booking) {
   const service = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)).find(s => s.serviceId === booking.serviceId) || {};
   const tech = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).find(t => t.technicianId === booking.technicianId) || {};
   const customer = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS)).find(c => c.customerId === booking.customerId) || {};
+  const technicianName = booking.technicianId === 'SPA_ASSIGN' ? 'Spa sắp xếp' : (tech.nameVi || booking.technicianId);
   
   const msg = `❌ *THÔNG BÁO HỦY LỊCH!*\n\n` +
               `👤 *Khách:* ${customer.name} (${customer.phone})\n` +
               `💆 *Dịch vụ:* ${service.nameVi || booking.serviceId}\n` +
-              `👩‍⚕️ *Kỹ thuật viên:* ${tech.nameVi || booking.technicianId}\n` +
+              `👩‍⚕️ *Kỹ thuật viên:* ${technicianName}\n` +
               `📅 *Ngày:* ${normalizeDate(booking.bookingDate)}\n` +
               `⏰ *Giờ:* ${normalizeTime(booking.startTime)} - ${normalizeTime(booking.endTime)}`;
   
@@ -785,8 +787,17 @@ function notifyCancelBooking(booking) {
 function sendTelegramMessage(text) {
   if (CONFIG.TELEGRAM.TOKEN === 'YOUR_TELEGRAM_BOT_TOKEN') return;
   const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM.TOKEN}/sendMessage`;
-  const payload = { chat_id: CONFIG.TELEGRAM.CHAT_ID, text: text, parse_mode: 'Markdown' };
-  UrlFetchApp.fetch(url, { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true });
+  const payload = { chat_id: CONFIG.TELEGRAM.CHAT_ID, text: text };
+  const resp = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  const code = resp.getResponseCode();
+  if (code < 200 || code >= 300) {
+    throw new Error('telegram_http_' + code + ': ' + resp.getContentText());
+  }
 }
 
 // ── SETUP TOOL ──────────────────────────────────────────────

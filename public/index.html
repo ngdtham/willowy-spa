@@ -1320,6 +1320,89 @@
       font-size: 12px
     }
 
+    .view-toggle {
+      display: inline-flex;
+      background: var(--stone);
+      border-radius: 20px;
+      padding: 3px;
+      gap: 3px
+    }
+
+    .view-toggle .btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 16px
+    }
+
+    .view-toggle .btn.active {
+      background: #fff;
+      color: var(--deep);
+      box-shadow: 0 2px 8px rgba(44, 33, 24, .1)
+    }
+
+    .admin-bookings-list-wrap,
+    .admin-bookings-calendar-wrap {
+      display: none
+    }
+
+    .admin-bookings-list-wrap.active,
+    .admin-bookings-calendar-wrap.active {
+      display: block
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px
+    }
+
+    .calendar-day {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: #fff;
+      padding: 12px
+    }
+
+    .calendar-day-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: var(--sub)
+    }
+
+    .calendar-day-date {
+      font-weight: 700;
+      color: var(--deep)
+    }
+
+    .calendar-count {
+      font-size: 11px;
+      color: var(--gold)
+    }
+
+    .calendar-event {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--gold);
+      border-radius: 10px;
+      padding: 8px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      line-height: 1.4;
+      background: #fcfaf7
+    }
+
+    .calendar-event.cancelled {
+      border-left-color: #c62828;
+      background: #fff6f5
+    }
+
+    .calendar-event.pending {
+      border-left-color: #f57f17;
+      background: #fffbef
+    }
+
     /* Modal */
     .modal-bg {
       display: none;
@@ -2037,25 +2120,36 @@
                   <option value="cancelled">Đã hủy</option>
                   <option value="pending">Chờ xử lý</option>
                 </select>
-                <input class="form-control" id="filterDate" type="date" onchange="filterBookings()"
-                  placeholder="Lọc theo ngày" />
+                <input class="form-control" id="filterDateFrom" type="date" onchange="filterBookings()"
+                  placeholder="Từ ngày" />
+                <input class="form-control" id="filterDateTo" type="date" onchange="filterBookings()"
+                  placeholder="Đến ngày" />
                 <input class="form-control" id="filterSearch" type="text" oninput="filterBookings()"
                   placeholder="Tìm tên khách..." />
+                <div class="view-toggle">
+                  <button class="btn btn-outline btn-sm active" id="viewListBtn" onclick="setAdminBookingView('list')">List</button>
+                  <button class="btn btn-outline btn-sm" id="viewCalendarBtn" onclick="setAdminBookingView('calendar')">Calendar</button>
+                </div>
               </div>
-              <div class="admin-table-wrap">
-                <table class="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Khách hàng</th>
-                      <th>Dịch vụ</th>
-                      <th>Kỹ thuật viên</th>
-                      <th>Ngày</th>
-                      <th>Giờ</th>
-                      <th>Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody id="adminBookingsBody"></tbody>
-                </table>
+              <div class="admin-bookings-list-wrap active" id="adminBookingsListWrap">
+                <div class="admin-table-wrap">
+                  <table class="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Khách hàng</th>
+                        <th>Dịch vụ</th>
+                        <th>Kỹ thuật viên</th>
+                        <th>Ngày</th>
+                        <th>Giờ</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody id="adminBookingsBody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="admin-bookings-calendar-wrap" id="adminBookingsCalendarWrap">
+                <div id="adminBookingsCalendar"></div>
               </div>
             </div>
 
@@ -2682,7 +2776,7 @@
       lang: 'vi', customer: null, services: [], technicians: [],
       booking: { serviceId: null, technicianId: null, date: null, startTime: null, endTime: null, note: '', isRecurring: false, recStartDate: '', recEndDate: '', recDays: [], recTime: '09:00' },
       currentStep: 1, currentPage: 'home',
-      admin: { token: null, bookings: [], services: [], technicians: [], schedules: [] },
+      admin: { token: null, bookings: [], services: [], technicians: [], schedules: [], bookingView: 'list' },
       sessionToken: localStorage.getItem('willowySession') || null
     };
 
@@ -3548,7 +3642,7 @@
       if (!res.success) { body.innerHTML = `<tr><td colspan="6" style="color:#c62828;padding:12px">${res.error}</td></tr>`; return; }
       state.admin.bookings = res.bookings;
       renderAdminStats(res.bookings);
-      renderAdminBookingsTable(res.bookings);
+      setAdminBookingView(state.admin.bookingView || 'list');
     }
 
     function renderAdminStats(bookings) {
@@ -3577,15 +3671,68 @@
   </tr>`).join('');
     }
 
-    function filterBookings() {
+    function renderAdminBookingsCalendar(bookings) {
+      const wrap = document.getElementById('adminBookingsCalendar'); if (!wrap) return;
+      if (!bookings.length) { wrap.innerHTML = `<div class="card" style="padding:24px;text-align:center;color:var(--sub)">Không có lịch đặt nào</div>`; return; }
+
+      const byDate = {};
+      bookings.forEach(b => {
+        const date = b.bookingDate || '';
+        if (!byDate[date]) byDate[date] = [];
+        byDate[date].push(b);
+      });
+
+      const dates = Object.keys(byDate).sort();
+      wrap.innerHTML = `<div class="calendar-grid">${dates.map(date => {
+        const items = (byDate[date] || []).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+        return `<div class="calendar-day">
+          <div class="calendar-day-head">
+            <div class="calendar-day-date">${date}</div>
+            <div class="calendar-count">${items.length} lịch</div>
+          </div>
+          ${items.map(b => `<div class="calendar-event ${b.status || ''}">
+            <div><strong>${b.startTime} - ${b.endTime}</strong></div>
+            <div>${b.customer && b.customer.name || '—'} · ${b.customer && b.customer.phone || ''}</div>
+            <div>${b.service && b.service.nameVi || b.serviceId}</div>
+            <div>${b.technician && b.technician.nameVi || b.technicianId}</div>
+            <div><span class="status-badge status-${b.status}">${b.status === 'confirmed' ? 'Xác nhận' : b.status === 'cancelled' ? 'Đã hủy' : 'Chờ'}</span></div>
+          </div>`).join('')}
+        </div>`;
+      }).join('')}</div>`;
+    }
+
+    function getFilteredAdminBookings() {
       const status = document.getElementById('filterStatus').value;
-      const date = document.getElementById('filterDate').value;
+      const dateFrom = document.getElementById('filterDateFrom').value;
+      const dateTo = document.getElementById('filterDateTo').value;
       const search = document.getElementById('filterSearch').value.toLowerCase();
-      let filtered = state.admin.bookings;
+      let filtered = state.admin.bookings || [];
+
       if (status) filtered = filtered.filter(b => b.status === status);
-      if (date) filtered = filtered.filter(b => b.bookingDate === date);
+      if (dateFrom) filtered = filtered.filter(b => (b.bookingDate || '') >= dateFrom);
+      if (dateTo) filtered = filtered.filter(b => (b.bookingDate || '') <= dateTo);
       if (search) filtered = filtered.filter(b => (b.customer && b.customer.name || '').toLowerCase().includes(search) || (b.customer && b.customer.phone || '').includes(search));
+      return filtered;
+    }
+
+    function filterBookings() {
+      const filtered = getFilteredAdminBookings();
       renderAdminBookingsTable(filtered);
+      renderAdminBookingsCalendar(filtered);
+    }
+
+    function setAdminBookingView(view) {
+      state.admin.bookingView = view === 'calendar' ? 'calendar' : 'list';
+      const listWrap = document.getElementById('adminBookingsListWrap');
+      const calWrap = document.getElementById('adminBookingsCalendarWrap');
+      const listBtn = document.getElementById('viewListBtn');
+      const calBtn = document.getElementById('viewCalendarBtn');
+
+      if (listWrap) listWrap.classList.toggle('active', state.admin.bookingView === 'list');
+      if (calWrap) calWrap.classList.toggle('active', state.admin.bookingView === 'calendar');
+      if (listBtn) listBtn.classList.toggle('active', state.admin.bookingView === 'list');
+      if (calBtn) calBtn.classList.toggle('active', state.admin.bookingView === 'calendar');
+      filterBookings();
     }
 
     // ── ADMIN: SERVICES ───────────────────────────────────────────
