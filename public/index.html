@@ -3717,9 +3717,9 @@
       if (dateTo) filtered = filtered.filter(b => (b.bookingDate || '') <= dateTo);
       if (search) filtered = filtered.filter(b => (b.customer && b.customer.name || '').toLowerCase().includes(search) || (b.customer && b.customer.phone || '').includes(search));
       filtered = filtered.slice().sort((a, b) => {
-        const aKey = `${a.bookingDate || ''}T${a.startTime || ''}`;
-        const bKey = `${b.bookingDate || ''}T${b.startTime || ''}`;
-        return aKey.localeCompare(bKey);
+        const aTs = new Date(`${a.bookingDate || '1970-01-01'}T${a.startTime || '00:00'}:00`).getTime();
+        const bTs = new Date(`${b.bookingDate || '1970-01-01'}T${b.startTime || '00:00'}:00`).getTime();
+        return aTs - bTs;
       });
       return filtered;
     }
