@@ -806,3 +806,33 @@ function setupServicesData() {
   ];
   services.forEach(svc => appendRow(sheet, headers, svc));
 }
+
+// ── SYNC DATA TOOL ──────────────────────────────────────────
+function syncTotalVisits() {
+  const bSheet = getSheet(CONFIG.SHEETS.BOOKINGS);
+  const bookings = sheetToObjects(bSheet);
+  
+  // Count only bookings that are NOT cancelled (or just confirmed/completed)
+  const visitCounts = {};
+  bookings.forEach(b => {
+    if (b.status === 'confirmed' || b.status === 'completed') {
+      visitCounts[b.customerId] = (visitCounts[b.customerId] || 0) + 1;
+    }
+  });
+  
+  const cSheet = getSheet(CONFIG.SHEETS.CUSTOMERS);
+  const customers = sheetToObjects(cSheet);
+  const headers = getHeaders(cSheet);
+  
+  let updatedCount = 0;
+  customers.forEach((c, idx) => {
+    const actualVisits = visitCounts[c.customerId] || 0;
+    if (parseInt(c.totalVisits || 0) !== actualVisits) {
+      c.totalVisits = actualVisits;
+      updateRow(cSheet, idx, headers, c);
+      updatedCount++;
+    }
+  });
+  
+  return `Đã đồng bộ lại tổng lượt (totalVisits) cho ${updatedCount} khách hàng thành công!`;
+}
