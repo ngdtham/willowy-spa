@@ -216,6 +216,16 @@ function handleGetTechnicians(payload) {
     const { serviceId } = payload||{};
     let techs = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).filter(t => isActive(t.isActive));
     if (serviceId) techs = techs.filter(t => t.specialties && String(t.specialties).split(',').map(s=>s.trim()).includes(serviceId));
+    
+    // Thêm tùy chọn "Spa sắp xếp" lên đầu danh sách
+    techs.unshift({ 
+      technicianId: 'SPA_ASSIGN', 
+      nameVi: 'Spa sắp xếp', 
+      nameEn: 'Spa arranges', 
+      isActive: true, 
+      specialties: serviceId || '' 
+    });
+    
     return { success: true, technicians: techs };
   } catch(e) { return { success: false, error: e.message }; }
 }
@@ -224,8 +234,32 @@ function handleGetTechnicians(payload) {
 function handleGetAvailableSlots(payload) {
   const { technicianId, date, serviceId } = payload;
   if (!technicianId || !date) return { success: false, error: 'missing_fields' };
+  
   let duration = 60;
-  try { const svc = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)).find(s => s.serviceId === serviceId); if (svc) duration = parseInt(svc.duration)||60; } catch(e) {}
+  try { 
+    const svc = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)).find(s => s.serviceId === serviceId); 
+    if (svc) duration = parseInt(svc.duration)||60; 
+  } catch(e) {}
+
+  if (technicianId === 'SPA_ASSIGN') {
+    // Logic cho "Spa sắp xếp": slot trống nếu có ít nhất 1 KTV có thể làm dịch vụ này đang rảnh
+    const allTechs = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).filter(t => isActive(t.isActive));
+    const eligibleTechs = serviceId ? allTechs.filter(t => t.specialties && String(t.specialties).split(',').map(s=>s.trim()).includes(serviceId)) : allTechs;
+    
+    if (eligibleTechs.length === 0) return { success: true, slots: [] };
+
+    const bSheet = getSheet(CONFIG.SHEETS.BOOKINGS);
+    const allBookings = sheetToObjects(bSheet).filter(b => normalizeDate(b.bookingDate) === date && (b.status==='confirmed'||b.status==='pending'));
+    
+    const schSheet = getSheet(CONFIG.SHEETS.SCHEDULES);
+    const allSchedules = sheetToObjects(schSheet).filter(s => normalizeDate(s.date) === date && isActive(s.isActive));
+
+    // Giả định giờ làm việc chung từ 08:00 đến 23:00 nếu không có lịch cụ thể
+    const slots = generateMultiTechTimeSlots('08:00', '23:00', duration, eligibleTechs, allBookings, allSchedules, date);
+    return { success: true, slots };
+  }
+
+  // Logic cũ cho 1 KTV cụ thể
   let existingBookings = [];
   try {
     existingBookings = sheetToObjects(getSheet(CONFIG.SHEETS.BOOKINGS)).filter(b =>
@@ -237,10 +271,44 @@ function handleGetAvailableSlots(payload) {
     const schedules = sheetToObjects(getSheet(CONFIG.SHEETS.SCHEDULES));
     techSchedule = schedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === date && isActive(s.isActive));
   } catch(e) {}
-  // Use default working hours if no specific schedule exists
+  
   var scheduleStart = techSchedule ? normalizeTime(techSchedule.startTime) : '08:00';
   var scheduleEnd = techSchedule ? normalizeTime(techSchedule.endTime) : '23:00';
   return { success: true, slots: generateTimeSlots(scheduleStart, scheduleEnd, duration, existingBookings, date) };
+}
+
+function generateMultiTechTimeSlots(startTime, endTime, duration, techs, bookings, schedules, date) {
+  const now = new Date();
+  const sm = timeToMinutes(startTime), em = timeToMinutes(endTime);
+  const slots = [];
+  
+  for (let m = sm; m + duration <= em; m += 30) {
+    const s = String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+    const e2 = String(Math.floor((m+duration)/60)).padStart(2,'0')+':'+String((m+duration)%60).padStart(2,'0');
+    const isPast = new Date(date+'T'+s+':00') <= now;
+    
+    // Tìm xem có KTV nào rảnh trong khung giờ này không
+    let availableTechCount = 0;
+    for (let tech of techs) {
+      const sch = schedules.find(sc => String(sc.technicianId).trim() === tech.technicianId);
+      const sStart = sch ? timeToMinutes(normalizeTime(sch.startTime)) : timeToMinutes('08:00');
+      const sEnd = sch ? timeToMinutes(normalizeTime(sch.endTime)) : timeToMinutes('23:00');
+      
+      // Nếu KTV không làm việc lúc này
+      if (m < sStart || (m + duration) > sEnd) continue;
+      
+      // Kiểm tra lịch bận
+      const isBusy = bookings.filter(b => String(b.technicianId).trim() === tech.technicianId).some(b => {
+        const bs = timeToMinutes(normalizeTime(b.startTime)), be = timeToMinutes(normalizeTime(b.endTime));
+        return !(m + duration <= bs || m >= be);
+      });
+      
+      if (!isBusy) { availableTechCount++; break; } // Chỉ cần 1 người rảnh
+    }
+    
+    slots.push({ start: s, end: e2, available: !isPast && availableTechCount > 0, isPast: isPast, isBooked: availableTechCount === 0 });
+  }
+  return slots;
 }
 
 function generateTimeSlots(startTime, endTime, duration, bookings, date) {
@@ -317,19 +385,46 @@ function handleCreateBooking(payload) {
       
       if (bookingStartDateTime <= now) { skippedDates.push(d); continue; }
       
-      const existingForDay = existingBookings.filter(b => String(b.technicianId).trim()===technicianId && normalizeDate(b.bookingDate)===d);
-      if (existingForDay.some(b=>{ 
-        const bs=timeToMinutes(normalizeTime(b.startTime)),be=timeToMinutes(normalizeTime(b.endTime));
-        const isConflict = !(eMin<=bs||sMin>=be);
-        if (isConflict) {
-          if (b.customerId === customerId && b.serviceId === serviceId && normalizeTime(b.startTime) === stTime) {
-            return false;
-          }
-          return true;
+      if (technicianId === 'SPA_ASSIGN') {
+        // Logic kiểm tra cho "Spa sắp xếp"
+        const allTechs = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).filter(t => isActive(t.isActive));
+        const eligibleTechs = serviceId ? allTechs.filter(t => t.specialties && String(t.specialties).split(',').map(s=>s.trim()).includes(serviceId)) : allTechs;
+        
+        const schSheet = getSheet(CONFIG.SHEETS.SCHEDULES);
+        const allSchedules = sheetToObjects(schSheet).filter(s => normalizeDate(s.date) === d && isActive(s.isActive));
+        
+        let foundAnyAvailable = false;
+        for (let tech of eligibleTechs) {
+          const sch = allSchedules.find(sc => String(sc.technicianId).trim() === tech.technicianId);
+          const sStart = sch ? timeToMinutes(normalizeTime(sch.startTime)) : timeToMinutes('08:00');
+          const sEnd = sch ? timeToMinutes(normalizeTime(sch.endTime)) : timeToMinutes('23:00');
+          
+          if (sMin < sStart || eMin > sEnd) continue;
+          
+          const isBusy = existingBookings.filter(b => String(b.technicianId).trim() === tech.technicianId && normalizeDate(b.bookingDate) === d).some(b => {
+            const bs = timeToMinutes(normalizeTime(b.startTime)), be = timeToMinutes(normalizeTime(b.endTime));
+            return !(eMin <= bs || sMin >= be);
+          });
+          
+          if (!isBusy) { foundAnyAvailable = true; break; }
         }
-        return false;
-      })) {
-        skippedDates.push(d); continue;
+        
+        if (!foundAnyAvailable) { skippedDates.push(d); continue; }
+      } else {
+        const existingForDay = existingBookings.filter(b => String(b.technicianId).trim()===technicianId && normalizeDate(b.bookingDate)===d);
+        if (existingForDay.some(b=>{ 
+          const bs=timeToMinutes(normalizeTime(b.startTime)),be=timeToMinutes(normalizeTime(b.endTime));
+          const isConflict = !(eMin<=bs||sMin>=be);
+          if (isConflict) {
+            if (b.customerId === customerId && b.serviceId === serviceId && normalizeTime(b.startTime) === stTime) {
+              return false;
+            }
+            return true;
+          }
+          return false;
+        })) {
+          skippedDates.push(d); continue;
+        }
       }
       
       const bookingId = generateId('BKG');
@@ -337,11 +432,13 @@ function handleCreateBooking(payload) {
       successfulBookings.push(booking);
       existingBookings.push(booking);
       
-      const existingSch = existingSchedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === d);
-      if (!existingSch) {
-        const newSch = { scheduleId: generateId('SCH'), technicianId: technicianId, date: d, startTime: '08:00', endTime: '23:00', isActive: true };
-        newSchedulesToCreate.push(newSch);
-        existingSchedules.push(newSch);
+      if (technicianId !== 'SPA_ASSIGN') {
+        const existingSch = existingSchedules.find(s => String(s.technicianId).trim() === technicianId && normalizeDate(s.date) === d);
+        if (!existingSch) {
+          const newSch = { scheduleId: generateId('SCH'), technicianId: technicianId, date: d, startTime: '08:00', endTime: '23:00', isActive: true };
+          newSchedulesToCreate.push(newSch);
+          existingSchedules.push(newSch);
+        }
       }
       
       try { notifyNewBooking(booking); } catch(e) { console.error('Notification failed', e.message); }
@@ -380,7 +477,14 @@ function handleGetCustomerBookings(payload) {
     const bookings = sheetToObjects(getSheet(CONFIG.SHEETS.BOOKINGS)).filter(b => b.customerId===customerId);
     const services = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES));
     const techs = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS));
-    const enriched = bookings.map(b => ({ ...b, bookingDate: normalizeDate(b.bookingDate), startTime: normalizeTime(b.startTime), endTime: normalizeTime(b.endTime), service: services.find(s=>s.serviceId===b.serviceId)||{}, technician: techs.find(t=>t.technicianId===b.technicianId)||{} }));
+    const enriched = bookings.map(b => ({ 
+      ...b, 
+      bookingDate: normalizeDate(b.bookingDate), 
+      startTime: normalizeTime(b.startTime), 
+      endTime: normalizeTime(b.endTime), 
+      service: services.find(s=>s.serviceId===b.serviceId)||{}, 
+      technician: b.technicianId === 'SPA_ASSIGN' ? { technicianId: 'SPA_ASSIGN', nameVi: 'Spa sắp xếp', nameEn: 'Spa arranges' } : (techs.find(t=>t.technicianId===b.technicianId)||{}) 
+    }));
     enriched.sort((a,b) => (a.bookingDate + 'T' + a.startTime).localeCompare(b.bookingDate + 'T' + b.startTime));
     return { success: true, bookings: enriched };
   } catch(e) { return { success: false, error: e.message }; }
@@ -438,7 +542,15 @@ function handleAdminGetAllBookings(payload) {
     const services = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES));
     const techs = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS));
     const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
-    const enriched = bookings.map(b => ({ ...b, bookingDate: normalizeDate(b.bookingDate), startTime: normalizeTime(b.startTime), endTime: normalizeTime(b.endTime), service: services.find(s=>s.serviceId===b.serviceId)||{}, technician: techs.find(t=>t.technicianId===b.technicianId)||{}, customer: sanitizeCustomer(customers.find(c=>c.customerId===b.customerId)||{}) }));
+    const enriched = bookings.map(b => ({ 
+      ...b, 
+      bookingDate: normalizeDate(b.bookingDate), 
+      startTime: normalizeTime(b.startTime), 
+      endTime: normalizeTime(b.endTime), 
+      service: services.find(s=>s.serviceId===b.serviceId)||{}, 
+      technician: b.technicianId === 'SPA_ASSIGN' ? { technicianId: 'SPA_ASSIGN', nameVi: 'Spa sắp xếp', nameEn: 'Spa arranges' } : (techs.find(t=>t.technicianId===b.technicianId)||{}), 
+      customer: sanitizeCustomer(customers.find(c=>c.customerId===b.customerId)||{}) 
+    }));
     enriched.sort((a,b) => (b.bookingDate+b.startTime).localeCompare(a.bookingDate+a.startTime));
     return { success: true, bookings: enriched };
   } catch(e) { return { success: false, error: e.message }; }
