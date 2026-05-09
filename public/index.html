@@ -2126,6 +2126,7 @@
                   placeholder="Đến ngày" />
                 <input class="form-control" id="filterSearch" type="text" oninput="filterBookings()"
                   placeholder="Tìm tên khách..." />
+                <button class="btn btn-outline btn-sm" id="toggleHideCancelledBtn" onclick="toggleHideCancelledBookings()">Ẩn lịch đã hủy</button>
                 <div class="view-toggle">
                   <button class="btn btn-outline btn-sm active" id="viewListBtn" onclick="setAdminBookingView('list')">List</button>
                   <button class="btn btn-outline btn-sm" id="viewCalendarBtn" onclick="setAdminBookingView('calendar')">Calendar</button>
@@ -2776,7 +2777,7 @@
       lang: 'vi', customer: null, services: [], technicians: [],
       booking: { serviceId: null, technicianId: null, date: null, startTime: null, endTime: null, note: '', isRecurring: false, recStartDate: '', recEndDate: '', recDays: [], recTime: '09:00' },
       currentStep: 1, currentPage: 'home',
-      admin: { token: null, bookings: [], services: [], technicians: [], schedules: [], bookingView: 'list' },
+      admin: { token: null, bookings: [], services: [], technicians: [], schedules: [], bookingView: 'list', hideCancelled: false },
       sessionToken: localStorage.getItem('willowySession') || null
     };
 
@@ -3642,6 +3643,8 @@
       if (!res.success) { body.innerHTML = `<tr><td colspan="6" style="color:#c62828;padding:12px">${res.error}</td></tr>`; return; }
       state.admin.bookings = res.bookings;
       renderAdminStats(res.bookings);
+      const hideBtn = document.getElementById('toggleHideCancelledBtn');
+      if (hideBtn) hideBtn.textContent = state.admin.hideCancelled ? 'Hiện lịch đã hủy' : 'Ẩn lịch đã hủy';
       setAdminBookingView(state.admin.bookingView || 'list');
     }
 
@@ -3709,9 +3712,15 @@
       let filtered = state.admin.bookings || [];
 
       if (status) filtered = filtered.filter(b => b.status === status);
+      if (state.admin.hideCancelled) filtered = filtered.filter(b => b.status !== 'cancelled');
       if (dateFrom) filtered = filtered.filter(b => (b.bookingDate || '') >= dateFrom);
       if (dateTo) filtered = filtered.filter(b => (b.bookingDate || '') <= dateTo);
       if (search) filtered = filtered.filter(b => (b.customer && b.customer.name || '').toLowerCase().includes(search) || (b.customer && b.customer.phone || '').includes(search));
+      filtered = filtered.slice().sort((a, b) => {
+        const aKey = `${a.bookingDate || ''}T${a.startTime || ''}`;
+        const bKey = `${b.bookingDate || ''}T${b.startTime || ''}`;
+        return aKey.localeCompare(bKey);
+      });
       return filtered;
     }
 
@@ -3732,6 +3741,15 @@
       if (calWrap) calWrap.classList.toggle('active', state.admin.bookingView === 'calendar');
       if (listBtn) listBtn.classList.toggle('active', state.admin.bookingView === 'list');
       if (calBtn) calBtn.classList.toggle('active', state.admin.bookingView === 'calendar');
+      filterBookings();
+    }
+
+    function toggleHideCancelledBookings() {
+      state.admin.hideCancelled = !state.admin.hideCancelled;
+      const btn = document.getElementById('toggleHideCancelledBtn');
+      if (btn) {
+        btn.textContent = state.admin.hideCancelled ? 'Hiện lịch đã hủy' : 'Ẩn lịch đã hủy';
+      }
       filterBookings();
     }
 
