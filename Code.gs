@@ -50,6 +50,7 @@ function doPost(e) {
       'adminGetServices': handleAdminGetServices, 'adminSaveService': handleAdminSaveService, 'adminDeleteService': handleAdminDeleteService,
       'adminGetTechnicians': handleAdminGetTechnicians, 'adminSaveTechnician': handleAdminSaveTechnician, 'adminDeleteTechnician': handleAdminDeleteTechnician,
       'adminGetSchedules': handleAdminGetSchedules, 'adminSaveSchedule': handleAdminSaveSchedule, 'adminDeleteSchedule': handleAdminDeleteSchedule,
+      'setup': runSetupTool
     };
     if (handlers[action]) {
       return ContentService.createTextOutput(JSON.stringify(handlers[action](payload))).setMimeType(ContentService.MimeType.JSON);
@@ -156,7 +157,8 @@ function handleLogin(payload) {
   const customer = customers.find(c => String(c.phone).trim() === String(phone).trim() && isActive(c.isActive));
   if (!customer) return { success: false, error: 'not_found' };
   if (customer.passwordHash !== hashPassword(password)) return { success: false, error: 'wrong_password' };
-  return { success: true, customer: sanitizeCustomer(customer), isAdmin: isActive(customer.isAdmin) };
+  const token = CONFIG.ADMIN.USERNAME + ':' + hashPassword(CONFIG.ADMIN.PASSWORD); // Simplistic admin token
+  return { success: true, customer: sanitizeCustomer(customer), isAdmin: isActive(customer.isAdmin), token: (isActive(customer.isAdmin) ? token : null) };
 }
 
 function handleRegister(payload) {
@@ -269,7 +271,6 @@ function handleCreateBooking(payload) {
       if (!startDate || !endDate || !daysOfWeek || !daysOfWeek.length || !startTime) return { success: false, error: 'missing_fields' };
       stTime = startTime;
       
-      // Khởi tạo ngày local để tránh lệch múi giờ
       const [sy, smm, sd] = startDate.split('-').map(Number);
       const [ey, emm, ed] = endDate.split('-').map(Number);
       let curr = new Date(sy, smm - 1, sd);
@@ -278,7 +279,6 @@ function handleCreateBooking(payload) {
       let maxDays = 180;
       while (curr <= end && maxDays > 0) {
         if (daysOfWeek.includes(curr.getDay())) {
-          // Format lại thành YYYY-MM-DD local
           const dStr = curr.getFullYear() + '-' + String(curr.getMonth()+1).padStart(2,'0') + '-' + String(curr.getDate()).padStart(2,'0');
           datesToBook.push(dStr);
         }
@@ -311,7 +311,6 @@ function handleCreateBooking(payload) {
     const existingSchedules = sheetToObjects(schSheet);
     
     for (let d of datesToBook) {
-      // So sánh giờ: sử dụng Date(y, m-1, d, hour, min) để đảm bảo local time
       const [y, mm, dd] = d.split('-').map(Number);
       const [hh, min] = stTime.split(':').map(Number);
       const bookingStartDateTime = new Date(y, mm - 1, dd, hh, min);
@@ -323,9 +322,8 @@ function handleCreateBooking(payload) {
         const bs=timeToMinutes(normalizeTime(b.startTime)),be=timeToMinutes(normalizeTime(b.endTime));
         const isConflict = !(eMin<=bs||sMin>=be);
         if (isConflict) {
-          // Nếu trùng lịch nhưng lại là CÙNG 1 khách hàng, cùng dịch vụ, cùng giờ => Coi như đã đặt thành công (trường hợp retry)
           if (b.customerId === customerId && b.serviceId === serviceId && normalizeTime(b.startTime) === stTime) {
-            return false; // Không coi là conflict
+            return false;
           }
           return true;
         }
@@ -346,17 +344,11 @@ function handleCreateBooking(payload) {
         existingSchedules.push(newSch);
       }
       
-      // Notify Telegram & Calendar
-      try {
-        notifyNewBooking(booking);
-      } catch(e) { 
-        console.error('Notification failed', e.message); 
-      }
+      try { notifyNewBooking(booking); } catch(e) { console.error('Notification failed', e.message); }
     }
     
     if (successfulBookings.length === 0) return { success: false, error: 'slot_taken' };
 
-    // Batch write Bookings
     const bHeaders = getHeaders(bSheet);
     const bValues = successfulBookings.map(b => bHeaders.map(h => {
       let val = b[h] !== undefined ? b[h] : '';
@@ -365,31 +357,13 @@ function handleCreateBooking(payload) {
     }));
     bSheet.getRange(bSheet.getLastRow() + 1, 1, bValues.length, bHeaders.length).setValues(bValues);
 
-    // Batch write Schedules
     if (newSchedulesToCreate.length > 0) {
       const schHeaders = getHeaders(schSheet);
       const schValues = newSchedulesToCreate.map(s => schHeaders.map(h => s[h] !== undefined ? s[h] : ''));
       schSheet.getRange(schSheet.getLastRow() + 1, 1, schValues.length, schHeaders.length).setValues(schValues);
     }
     
-    if (successfulBookings.length === 0) return { success: false, error: 'slot_taken' };
-
-    // Cập nhật referral và totalVisits
     try {
-      const cBookings = existingBookings.filter(b => b.customerId === customerId && b.status === 'confirmed');
-      if (cBookings.length === successfulBookings.length) { // Nếu đây là những booking đầu tiên
-        const cSheet = getSheet(CONFIG.SHEETS.CUSTOMERS);
-        const customers = sheetToObjects(cSheet);
-        const customer = customers.find(c => c.customerId === customerId);
-        if (customer && customer.referredBy) {
-          const rIdx = customers.findIndex(c => c.customerId === customer.referredBy);
-          if (rIdx !== -1) {
-            const headers = getHeaders(cSheet);
-            customers[rIdx].referralCount = (parseInt(customers[rIdx].referralCount) || 0) + 1;
-            updateRow(cSheet, rIdx, headers, customers[rIdx]);
-          }
-        }
-      }
       const cs=getSheet(CONFIG.SHEETS.CUSTOMERS); const ca=sheetToObjects(cs); const ch=getHeaders(cs); const ci=ca.findIndex(c=>c.customerId===customerId); 
       if(ci!==-1){ca[ci].totalVisits=(parseInt(ca[ci].totalVisits)||0)+successfulBookings.length;updateRow(cs,ci,ch,ca[ci]);}
     } catch(e) {}
@@ -407,12 +381,7 @@ function handleGetCustomerBookings(payload) {
     const services = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES));
     const techs = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS));
     const enriched = bookings.map(b => ({ ...b, bookingDate: normalizeDate(b.bookingDate), startTime: normalizeTime(b.startTime), endTime: normalizeTime(b.endTime), service: services.find(s=>s.serviceId===b.serviceId)||{}, technician: techs.find(t=>t.technicianId===b.technicianId)||{} }));
-    // Sắp xếp theo ngày đặt lịch: ngày gần nhất lên trên
-    enriched.sort((a,b) => {
-      const ad = a.bookingDate + 'T' + a.startTime;
-      const bd = b.bookingDate + 'T' + b.startTime;
-      return ad.localeCompare(bd); // Sắp xếp tăng dần theo thời gian diễn ra
-    });
+    enriched.sort((a,b) => (a.bookingDate + 'T' + a.startTime).localeCompare(b.bookingDate + 'T' + b.startTime));
     return { success: true, bookings: enriched };
   } catch(e) { return { success: false, error: e.message }; }
 }
@@ -450,7 +419,7 @@ function handleTrackQRScan(payload) {
 function handleAdminLogin(payload) {
   const { username, password } = payload;
   if (username === CONFIG.ADMIN.USERNAME && password === CONFIG.ADMIN.PASSWORD)
-    return { success: true, adminToken: CONFIG.ADMIN.USERNAME + ':' + hashPassword(password) };
+    return { success: true, token: CONFIG.ADMIN.USERNAME + ':' + hashPassword(password), admin: { name: 'Super Admin' } };
   return { success: false, error: 'wrong_credentials' };
 }
 
@@ -566,7 +535,6 @@ function notifyNewBooking(booking) {
               `📝 Ghi chú: ${booking.note || 'Không có'}`;
   
   sendTelegramMessage(msg);
-  syncToCalendar(booking, service, tech, customer);
 }
 
 function sendTelegramMessage(text) {
@@ -576,110 +544,42 @@ function sendTelegramMessage(text) {
   UrlFetchApp.fetch(url, { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true });
 }
 
-function syncToCalendar(booking, service, tech, customer) {
-  if (!tech.email) return; // Chỉ đồng bộ nếu KTV có email
-  try {
-    const calendar = CalendarApp.getCalendarById(tech.email);
-    if (!calendar) return;
-    
-    const [y, m, d] = booking.bookingDate.split('-').map(Number);
-    const [sh, sm] = normalizeTime(booking.startTime).split(':').map(Number);
-    const [eh, em] = normalizeTime(booking.endTime).split(':').map(Number);
-    
-    const start = new Date(y, m - 1, d, sh, sm);
-    const end = new Date(y, m - 1, d, eh, em);
-    
-    calendar.createEvent(`[Spa] ${service.nameVi} - ${customer.name}`, start, end, {
-      description: `Khách: ${customer.name}\nSĐT: ${customer.phone}\nDịch vụ: ${service.nameVi}\nGhi chú: ${booking.note || ''}`,
-      location: 'Willowy Spa'
-    });
-  } catch(e) { console.error('Calendar Sync Error', e.message); }
+// ── SETUP TOOL ──────────────────────────────────────────────
+function runSetupTool() {
+  setupServicesData();
+  return { success: true, message: 'Services synchronized with backend.' };
 }
 
-// Hàm này bạn sẽ cài đặt Trigger chạy mỗi 10-15 phút 1 lần
-function checkReminders() {
-  const now = new Date();
-  const fifteenMinsLater = new Date(now.getTime() + 15 * 60 * 1000);
-  const bookings = sheetToObjects(getSheet(CONFIG.SHEETS.BOOKINGS)).filter(b => b.status === 'confirmed');
-  
-  for (let b of bookings) {
-    const [y, m, d] = b.bookingDate.split('-').map(Number);
-    const [hh, mm] = normalizeTime(b.startTime).split(':').map(Number);
-    const bStart = new Date(y, m-1, d, hh, mm);
-    
-    // Nếu còn đúng 15-20 phút nữa là đến lịch
-    if (bStart > now && bStart <= fifteenMinsLater) {
-      const tech = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS)).find(t => t.technicianId === b.technicianId) || {};
-      const service = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES)).find(s => s.serviceId === b.serviceId) || {};
-      const msg = `⏰ *NHẮC LỊCH SẮP ĐẾN (15 PHÚT)*\n` +
-                  `👩‍⚕️ KTV: ${tech.nameVi}\n` +
-                  `👤 Khách: ${b.customerId}\n` +
-                  `💆 Dịch vụ: ${service.nameVi}\n` +
-                  `⏰ Giờ: ${normalizeTime(b.startTime)}`;
-      sendTelegramMessage(msg);
-    }
-  }
-}
-
-// ============================================================
-// CÔNG CỤ SETUP DỮ LIỆU (Chạy 1 lần để đồng bộ Sheet)
-// ============================================================
-
-/**
- * Hàm này sẽ xóa toàn bộ dữ liệu trong tab "Services" 
- * và ghi lại 22 dịch vụ mới khớp hoàn toàn với giao diện Web.
- */
 function setupServicesData() {
   const sheet = getSheet(CONFIG.SHEETS.SERVICES);
   const headers = getHeaders(sheet);
-  
-  // Xóa dữ liệu cũ (từ dòng 2 trở đi)
   const lr = sheet.getLastRow();
-  if (lr > 1) {
-    sheet.getRange(2, 1, lr - 1, sheet.getLastColumn()).clearContent();
-  }
+  if (lr > 1) sheet.getRange(2, 1, lr - 1, sheet.getLastColumn()).clearContent();
   
   const services = [
-    // CHĂM SÓC MÁI TÓC
     { serviceId: 'H1', nameVi: 'Nhẹ (H1)', nameEn: 'Light Hair Wash', duration: 45, price: 70000, isActive: true },
     { serviceId: 'H2', nameVi: 'Thả Lỏng (H2)', nameEn: 'Relaxing Hair Wash', duration: 90, price: 179000, isActive: true },
     { serviceId: 'H3', nameVi: 'Phục Hồi (H3)', nameEn: 'Recovery Hair Wash', duration: 120, price: 269000, isActive: true },
     { serviceId: 'H4', nameVi: 'Trọn Vẹn (H4)', nameEn: 'Complete Hair Wash', duration: 150, price: 299000, isActive: true },
-
-    // CHĂM SÓC DA - DẦU MỤN
     { serviceId: 'SO1', nameVi: 'Sạch & Cân Bằng (SO1)', nameEn: 'Clean & Balance', duration: 60, price: 449000, isActive: true },
     { serviceId: 'SO2', nameVi: 'Điều Trị & Phục Hồi (SO2)', nameEn: 'Treatment & Recovery', duration: 100, price: 499000, isActive: true },
     { serviceId: 'SO3', nameVi: 'Mụn Vùng Lưng (SO3)', nameEn: 'Back Acne Treatment', duration: 90, price: 449000, isActive: true },
     { serviceId: 'SO4', nameVi: 'Cá Nhân Hóa (SO4)', nameEn: 'Personalized Acne Care', duration: 80, price: 549000, isActive: true },
-    
-    // CHĂM SÓC DA - KHÔ XỈN MÀU
     { serviceId: 'SD1', nameVi: 'Cấp Ẩm & Làm Dịu (SD1)', nameEn: 'Hydrate & Soothe', duration: 60, price: 399000, isActive: true },
     { serviceId: 'SD2', nameVi: 'Cấp Ẩm Sâu (SD2)', nameEn: 'Deep Hydration', duration: 100, price: 449000, isActive: true },
     { serviceId: 'SD3', nameVi: 'Sáng Da & Phục Hồi (SD3)', nameEn: 'Brighten & Recover', duration: 90, price: 649000, isActive: true },
     { serviceId: 'SD4', nameVi: 'Cá Nhân Hóa (SD4)', nameEn: 'Personalized Skin Care', duration: 120, price: 699000, isActive: true },
-    
-    // CHĂM SÓC DA - LÃO HÓA
     { serviceId: 'SA1', nameVi: 'Dưỡng Ẩm & Thư Giãn (SA1)', nameEn: 'Moisturize & Relax', duration: 60, price: 449000, isActive: true },
     { serviceId: 'SA2', nameVi: 'Săn Chắc & Đàn Hồi (SA2)', nameEn: 'Firming & Elasticity', duration: 90, price: 699000, isActive: true },
     { serviceId: 'SA3', nameVi: 'Nâng Cơ Chuyên Sâu (SA3)', nameEn: 'Advanced Lifting', duration: 120, price: 749000, isActive: true },
     { serviceId: 'SA4', nameVi: 'Cá Nhân Hóa (SA4)', nameEn: 'Personalized Anti-Aging', duration: 120, price: 799000, isActive: true },
-    
-    // CHĂM SÓC CƠ THỂ - SẠCH SÁNG
     { serviceId: 'BS', nameVi: 'Sáng Mịn (BS)', nameEn: 'Bright & Smooth', duration: 45, price: 199000, isActive: true },
     { serviceId: 'BW', nameVi: 'Sáng Ẩm (BW)', nameEn: 'Bright & Moist', duration: 90, price: 399000, isActive: true },
     { serviceId: 'CB', nameVi: 'Dưỡng Thể Toàn Diện (CB)', nameEn: 'Full Body Care', duration: 150, price: 499000, isActive: true },
-    
-    // CHĂM SÓC CƠ THỂ - MASSAGE
     { serviceId: 'B1', nameVi: 'Thư Giãn Vùng Tay (B1)', nameEn: 'Hand Relaxation', duration: 30, price: 99000, isActive: true },
     { serviceId: 'B2', nameVi: 'Thư Giãn Vùng Chân (B2)', nameEn: 'Leg Relaxation', duration: 60, price: 129000, isActive: true },
     { serviceId: 'B3', nameVi: 'Giải Tỏa Vai Gáy (B3)', nameEn: 'Shoulder & Neck Relief', duration: 90, price: 259000, isActive: true },
     { serviceId: 'B4', nameVi: 'Thư Giãn Toàn Thân (B4)', nameEn: 'Full Body Relaxation', duration: 130, price: 399000, isActive: true }
   ];
-
-  // Ghi dữ liệu vào sheet
-  services.forEach(svc => {
-    appendRow(sheet, headers, svc);
-  });
-
-  Logger.log('Đã cập nhật thành công 22 dịch vụ vào Google Sheet!');
+  services.forEach(svc => appendRow(sheet, headers, svc));
 }
