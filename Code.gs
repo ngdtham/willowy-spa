@@ -37,6 +37,13 @@ function doGet(e) {
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
+
+    // Telegram webhook update (has update_id field)
+    if (data.update_id !== undefined) {
+      handleTelegramUpdate(data);
+      return ContentService.createTextOutput('OK');
+    }
+
     const action = data.action;
     const payload = data.payload || {};
     const handlers = {
@@ -787,7 +794,7 @@ function notifyCancelBooking(booking) {
 function sendTelegramMessage(text) {
   if (CONFIG.TELEGRAM.TOKEN === 'YOUR_TELEGRAM_BOT_TOKEN') return;
   const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM.TOKEN}/sendMessage`;
-  const payload = { chat_id: CONFIG.TELEGRAM.CHAT_ID, text: text };
+  const payload = { chat_id: CONFIG.TELEGRAM.CHAT_ID, text: text, parse_mode: 'Markdown' };
   const resp = UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
@@ -797,6 +804,115 @@ function sendTelegramMessage(text) {
   const code = resp.getResponseCode();
   if (code < 200 || code >= 300) {
     throw new Error('telegram_http_' + code + ': ' + resp.getContentText());
+  }
+}
+
+function sendTelegramReply(chatId, text) {
+  if (CONFIG.TELEGRAM.TOKEN === 'YOUR_TELEGRAM_BOT_TOKEN') return;
+  const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM.TOKEN}/sendMessage`;
+  UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' }),
+    muteHttpExceptions: true
+  });
+}
+
+// ── TELEGRAM BOT COMMANDS ────────────────────────────────────
+function setTelegramWebhook() {
+  const webhookUrl = ScriptApp.getService().getUrl();
+  const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM.TOKEN}/setWebhook`;
+  const resp = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({ url: webhookUrl }),
+    muteHttpExceptions: true
+  });
+  Logger.log('setWebhook result: ' + resp.getContentText());
+}
+
+function handleTelegramUpdate(update) {
+  const msg = update.message || update.edited_message;
+  if (!msg || !msg.text) return;
+
+  const chatId = String(msg.chat.id);
+  if (chatId !== CONFIG.TELEGRAM.CHAT_ID) return;
+
+  const text = msg.text.trim();
+
+  // /next N — N lịch sắp tới (1~20), mặc định 5
+  const nextMatch = text.match(/^\/next(?:@\S+)?(?:\s+(\d+))?/i);
+  if (nextMatch) {
+    const raw = parseInt(nextMatch[1]);
+    const n = isNaN(raw) ? 5 : Math.min(Math.max(raw, 1), 20);
+    sendTelegramReply(chatId, buildNextBookingsMessage(n));
+    return;
+  }
+
+  // /sumtoday — tổng kết hôm nay
+  if (/^\/sumtoday(?:@\S+)?$/i.test(text)) {
+    sendTelegramReply(chatId, buildSumTodayMessage());
+    return;
+  }
+}
+
+function buildNextBookingsMessage(n) {
+  try {
+    const now = new Date();
+    const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    const nowTime = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+    const services  = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES));
+    const techs     = sheetToObjects(getSheet(CONFIG.SHEETS.TECHNICIANS));
+    const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
+
+    const upcoming = sheetToObjects(getSheet(CONFIG.SHEETS.BOOKINGS))
+      .filter(b => b.status !== 'cancelled')
+      .map(b => ({ ...b, bookingDate: normalizeDate(b.bookingDate), startTime: normalizeTime(b.startTime), endTime: normalizeTime(b.endTime) }))
+      .filter(b => b.bookingDate > todayStr || (b.bookingDate === todayStr && b.startTime >= nowTime))
+      .sort((a, b) => (a.bookingDate + 'T' + a.startTime).localeCompare(b.bookingDate + 'T' + b.startTime))
+      .slice(0, n);
+
+    if (upcoming.length === 0) return '📋 Không có lịch sắp tới.';
+
+    let msg = `📋 *${upcoming.length} LỊCH SẮP TỚI:*\n`;
+    upcoming.forEach((b, i) => {
+      const svc  = services.find(s => s.serviceId === b.serviceId) || {};
+      const tech = b.technicianId === 'SPA_ASSIGN' ? { nameVi: 'Spa sắp xếp' } : (techs.find(t => t.technicianId === b.technicianId) || {});
+      const cust = customers.find(c => c.customerId === b.customerId) || {};
+      msg += `\n${i+1}. 📅 *${b.bookingDate}* ⏰ ${b.startTime}–${b.endTime}\n`;
+      msg += `   💆 ${svc.nameVi || b.serviceId}\n`;
+      msg += `   👤 ${cust.name || '?'} | 👩‍⚕️ ${tech.nameVi || b.technicianId}`;
+    });
+    return msg;
+  } catch(e) {
+    return '❌ Lỗi khi lấy danh sách lịch: ' + e.message;
+  }
+}
+
+function buildSumTodayMessage() {
+  try {
+    const now = new Date();
+    const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    const dateDisplay = now.getDate() + '/' + (now.getMonth()+1) + '/' + now.getFullYear();
+
+    const services = sheetToObjects(getSheet(CONFIG.SHEETS.SERVICES));
+    const bookings = sheetToObjects(getSheet(CONFIG.SHEETS.BOOKINGS))
+      .filter(b => normalizeDate(b.bookingDate) === todayStr && b.status !== 'cancelled');
+
+    let totalRevenue = 0;
+    bookings.forEach(b => {
+      const svc = services.find(s => s.serviceId === b.serviceId) || {};
+      totalRevenue += parseInt(svc.price) || 0;
+    });
+
+    const formatVND = n => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + 'đ';
+
+    return `📊 *TỔNG KẾT HÔM NAY (${dateDisplay}):*\n\n` +
+           `✅ Số lịch: *${bookings.length}* dịch vụ\n` +
+           `💰 Doanh thu dự kiến: *${formatVND(totalRevenue)}*`;
+  } catch(e) {
+    return '❌ Lỗi khi tính tổng: ' + e.message;
   }
 }
 
