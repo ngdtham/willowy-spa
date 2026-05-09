@@ -135,6 +135,26 @@ function timeToMinutes(t) {
   return parseInt(p[0]||0)*60 + parseInt(p[1]||0);
 }
 
+function countCustomerVisits(bookings, customerId) {
+  return bookings.filter(b => b.customerId === customerId && (b.status === 'confirmed' || b.status === 'completed')).length;
+}
+
+function refreshCustomerTotalVisits(customerId) {
+  if (!customerId) return 0;
+  const cSheet = getSheet(CONFIG.SHEETS.CUSTOMERS);
+  const customers = sheetToObjects(cSheet);
+  const headers = getHeaders(cSheet);
+  const idx = customers.findIndex(c => c.customerId === customerId);
+  if (idx === -1) return 0;
+  const bookings = sheetToObjects(getSheet(CONFIG.SHEETS.BOOKINGS));
+  const actualVisits = countCustomerVisits(bookings, customerId);
+  if ((parseInt(customers[idx].totalVisits) || 0) !== actualVisits) {
+    customers[idx].totalVisits = actualVisits;
+    updateRow(cSheet, idx, headers, customers[idx]);
+  }
+  return actualVisits;
+}
+
 function hashPassword(pw) {
   let h = 0; const s = pw + 'WILLOWY_SPA_SALT_2024';
   for (let i = 0; i < s.length; i++) { h = ((h<<5)-h)+s.charCodeAt(i); h=h&h; }
@@ -548,10 +568,7 @@ function handleCreateBooking(payload) {
       schSheet.getRange(schSheet.getLastRow() + 1, 1, schValues.length, schHeaders.length).setValues(schValues);
     }
     
-    try {
-      const cs=getSheet(CONFIG.SHEETS.CUSTOMERS); const ca=sheetToObjects(cs); const ch=getHeaders(cs); const ci=ca.findIndex(c=>c.customerId===customerId); 
-      if(ci!==-1){ca[ci].totalVisits=(parseInt(ca[ci].totalVisits)||0)+successfulBookings.length;updateRow(cs,ci,ch,ca[ci]);}
-    } catch(e) {}
+    try { refreshCustomerTotalVisits(customerId); } catch(e) {}
     
     return { success: true, bookings: successfulBookings, skippedDates };
   } catch(e) { return { success: false, error: 'create_booking_failed: ' + e.message }; }
@@ -574,7 +591,9 @@ function handleGetCustomerBookings(payload) {
       technician: b.technicianId === 'SPA_ASSIGN' ? { technicianId: 'SPA_ASSIGN', nameVi: 'Spa sắp xếp', nameEn: 'Spa arranges' } : (techs.find(t=>t.technicianId===b.technicianId)||{}) 
     }));
     enriched.sort((a,b) => (a.bookingDate + 'T' + a.startTime).localeCompare(b.bookingDate + 'T' + b.startTime));
-    return { success: true, bookings: enriched };
+    let totalVisits = countCustomerVisits(bookings, customerId);
+    try { totalVisits = refreshCustomerTotalVisits(customerId); } catch(e) {}
+    return { success: true, bookings: enriched, totalVisits };
   } catch(e) { return { success: false, error: e.message }; }
 }
 
@@ -587,6 +606,7 @@ function handleCancelBooking(payload) {
   if (bookings[idx].status==='cancelled') return { success: false, error: 'already_cancelled' };
   bookings[idx].status = 'cancelled'; 
   updateRow(sheet, idx, headers, bookings[idx]);
+  try { refreshCustomerTotalVisits(customerId); } catch(e) {}
   
   try {
     notifyCancelBooking(bookings[idx]);
@@ -603,7 +623,9 @@ function handleGetReferralInfo(payload) {
   const customers = sheetToObjects(getSheet(CONFIG.SHEETS.CUSTOMERS));
   const c = customers.find(c => c.customerId===customerId);
   if (!c) return { success: false, error: 'not_found' };
-  return { success: true, referralCode: c.referralCode, referralCount: parseInt(c.referralCount)||0 };
+  let totalVisits = parseInt(c.totalVisits) || 0;
+  try { totalVisits = refreshCustomerTotalVisits(customerId); } catch(e) {}
+  return { success: true, referralCode: c.referralCode, referralCount: parseInt(c.referralCount)||0, totalVisits };
 }
 
 function handleTrackQRScan(payload) {

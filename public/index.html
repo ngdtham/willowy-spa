@@ -3320,6 +3320,10 @@
       const res = await api('getCustomerBookings', { customerId: state.customer.customerId });
       showLoading(false);
       state.myBookings = res.bookings || [];
+      if (res.success && state.customer && Number.isFinite(Number(res.totalVisits))) {
+        state.customer.totalVisits = Number(res.totalVisits);
+        localStorage.setItem('willowyCustomer', JSON.stringify(state.customer));
+      }
       renderBookings();
     }
 
@@ -3474,14 +3478,25 @@
       const pc = document.getElementById('profileCard'); if (!pc) return;
       pc.innerHTML = `<div class="profile-header"><div class="avatar">${initials}</div><div style="flex:1"><h3 style="font-size:18px;font-weight:700;color:var(--deep)">${c.name}</h3><p style="color:var(--sub);font-size:12px">${c.phone}${c.email ? ' · ' + c.email : ''}</p></div><button class="btn btn-outline btn-sm" onclick="openEditProfile()" style="flex-shrink:0">✏️ Sửa</button></div>
     <div class="stat-chips">
-      <div class="stat-chip clickable" onclick="navigateToPastBookings()" title="Xem lịch sử dịch vụ"><div class="val">${c.totalVisits || 0}</div><div class="lbl">${t('totalVisit')} 📋</div></div>
-      <div class="stat-chip"><div class="val">${c.referralCount || 0}</div><div class="lbl">${t('referralCount')}</div></div>
+      <div class="stat-chip clickable" onclick="navigateToPastBookings()" title="Xem lịch sử dịch vụ"><div class="val" id="profileTotalVisits">${c.totalVisits || 0}</div><div class="lbl">${t('totalVisit')} 📋</div></div>
+      <div class="stat-chip"><div class="val" id="profileReferralCount">${c.referralCount || 0}</div><div class="lbl">${t('referralCount')}</div></div>
     </div>`;
       showLoading(true);
       const res = await api('getReferralInfo', { customerId: c.customerId });
       showLoading(false);
       const rc = document.getElementById('referralCard'); if (!rc) return;
       if (res.success) {
+        if (Number.isFinite(Number(res.totalVisits))) {
+          state.customer.totalVisits = Number(res.totalVisits);
+          const totalEl = document.getElementById('profileTotalVisits');
+          if (totalEl) totalEl.textContent = String(state.customer.totalVisits);
+        }
+        if (Number.isFinite(Number(res.referralCount))) {
+          state.customer.referralCount = Number(res.referralCount);
+          const refEl = document.getElementById('profileReferralCount');
+          if (refEl) refEl.textContent = String(state.customer.referralCount);
+        }
+        localStorage.setItem('willowyCustomer', JSON.stringify(state.customer));
         const qrUrl = window.location.href.split('?')[0] + '?ref=' + res.referralCode;
         rc.innerHTML = `<div class="qr-wrap">
       <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">${t('referralTitle')}</h3>
